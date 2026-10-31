@@ -114,14 +114,16 @@ input[type=range]{width:100%;accent-color:var(--gold)}
   <h2>🎹 Keys of Legend</h2>
   <p>Gamified piano lessons. The app listens through the mic to check your notes and timing.</p>
   <p>Put the phone on the music rest, close to the keyboard speakers.</p>
-  <button class="btn big" id="startBtn" style="max-width:320px">🎤 Tap to start</button>
+  <button class="btn big" id="startBtn" style="max-width:320px">🎤 Start with mic</button>
+  <button class="btn" id="noMicBtn" style="max-width:320px;width:100%;margin-top:10px">Continue without mic</button>
+  <p style="font-size:13px">Without the mic you tap what you played and self-check songs. You can switch the mic on or off any time from the pill at the top.</p>
   <div class="err" id="gateErr"></div>
 </div>
 <div id="toast" class="hidden"></div>
 
 <header>
   <h1>🎹 Keys of Legend</h1>
-  <span class="pill" id="micPill">mic off</span>
+  <button class="pill" id="micPill" style="border:0">🎤 mic off</button>
 </header>
 
 <nav>
@@ -226,6 +228,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <div class="now hidden" id="huntName" style="font-size:44px"></div>
       <div class="sub">Play this note</div>
       <div class="feedback" id="huntFb"></div>
+      <div class="answers" id="huntAns"></div>
     </div>
     <button class="btn" id="huntSkip" style="width:100%">Skip</button>
   </div>
@@ -235,6 +238,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 <!-- TUNER -->
 <section id="tab-tuner" class="hidden">
   <div class="card">
+    <div class="feedback bad hidden" id="tunerOff">Mic is off — tap the mic pill to turn it on.</div>
     <div class="tunernote" id="tNote">—</div>
     <div class="sub" style="text-align:center" id="tSolf">play a key</div>
     <div class="cents"><div class="mid"></div><div class="dot" id="tDot"></div></div>
@@ -247,6 +251,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 <!-- SETTINGS -->
 <section id="tab-settings" class="hidden">
   <div class="card">
+    <div class="toggle"><label for="micToggle">Microphone (checks your playing)</label><input type="checkbox" id="micToggle"></div>
     <div class="toggle"><label for="viewSel">Show music as</label><select id="viewSel" style="width:auto"><option value="auto">Auto (names to start, staff from World 2)</option><option value="staff">Staff only</option><option value="both">Staff + names</option><option value="names">Names only</option></select></div>
     <div class="toggle"><label for="solfOn">Show Do-Re-Mi names</label><input type="checkbox" id="solfOn" checked></div>
     <div class="toggle"><label for="strictOct">Strict octave in Song/Hunt (C4 ≠ C5)</label><input type="checkbox" id="strictOct"></div>
@@ -668,17 +673,39 @@ function wireSeg(el,cur,onPick){el.innerHTML=segHtml(cur);el.querySelectorAll('b
 function micTime(ev){return ev.s/engine.sr+ctxBase;}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.add('hidden'),2600);}
 
+let micStream=null,micSrc=null,micProc=null,visHooked=false;
+const micOn=()=>!!engine; // the mic is "on" exactly when the detection engine is running
+function micErr(m){if(!$('gate').classList.contains('hidden'))$('gateErr').textContent=m;else toast(m);}
+function ensureCtx(){if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();}if(ctx.state!=='running')ctx.resume();}
+function updateMicUI(){
+  const on=micOn();$('micPill').textContent=on?'🎤 mic on':'🎤 mic off';$('micPill').classList.toggle('on',on);
+  $('micToggle').checked=on;$('tunerOff').classList.toggle('hidden',on);
+}
+function hookVisibility(){
+  if(visHooked)return;visHooked=true;
+  document.addEventListener('visibilitychange',async()=>{
+    if(document.visibilityState==='visible'){try{if(ctx&&ctx.state!=='running')await ctx.resume();if(micOn()&&navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
+  });
+}
+function afterMicChange(){updateMicUI();if(song.running)song.stop();if(tab==='learn'&&L.q)L.render();if(tab==='hunt')$('huntStage').classList.add('hidden');}
+function startNoMic(){ensureCtx();$('gate').classList.add('hidden');store.set('mic',false);hookVisibility();updateMicUI();if(tab==='learn'&&!L.q)renderMap();}
+function stopMic(){
+  try{if(micProc){micProc.onaudioprocess=null;micProc.disconnect();}if(micSrc)micSrc.disconnect();if(micStream)micStream.getTracks().forEach(t=>t.stop());}catch(e){}
+  micStream=micSrc=micProc=null;engine=null;store.set('mic',false);
+  try{if(wakeLock)wakeLock.release();}catch(e){}
+  afterMicChange();toast('Mic off — tap what you play, self-check songs');
+}
 async function startMic(){
   $('gateErr').textContent='';
-  if(!window.isSecureContext){$('gateErr').textContent='The mic only works over https:// — open this page from an https link, not as a local file.';return;}
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('gateErr').textContent='This browser can\'t use the mic here. On iPhone, open the page in Safari.';return;}
+  if(!window.isSecureContext){micErr('The mic only works over https:// — open this page from an https link, not as a local file.');return;}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){micErr('This browser can\'t use the mic here. On iPhone, open the page in Safari.');return;}
   try{
-    const AC=window.AudioContext||window.webkitAudioContext;
-    ctx=new AC();
+    ensureCtx();
     const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
     if(ctx.state!=='running')await ctx.resume();
     const src=ctx.createMediaStreamSource(stream);
     const proc=ctx.createScriptProcessor(1024,1,1);
+    micStream=stream;micSrc=src;micProc=proc;baseHist=[];
     engine=new Engine(ctx.sampleRate);engine.sensDb=sensToDb(settings.sens);
     proc.onaudioprocess=e=>{
       const pt=(typeof e.playbackTime==='number'&&e.playbackTime>0)?e.playbackTime:ctx.currentTime;
@@ -690,14 +717,12 @@ async function startMic(){
     const mute=ctx.createGain();mute.gain.value=0;
     src.connect(proc);proc.connect(mute);mute.connect(ctx.destination);
     wireEngine();engine.cont=(tab==='tuner');
-    $('gate').classList.add('hidden');
-    $('micPill').textContent='mic on';$('micPill').classList.add('on');
+    $('gate').classList.add('hidden');store.set('mic',true);
     try{if(navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
-    document.addEventListener('visibilitychange',async()=>{
-      if(document.visibilityState==='visible'){try{if(ctx.state!=='running')await ctx.resume();if(navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
-    });
+    hookVisibility();afterMicChange();
   }catch(err){
-    $('gateErr').textContent=(err&&err.name==='NotAllowedError')?'Mic permission was refused. In Safari: tap “aA” → Website Settings → Microphone → Allow, then reload.':'Could not start the mic: '+(err&&err.message||err);
+    micErr((err&&err.name==='NotAllowedError')?'Mic permission was refused. In Safari: tap “aA” → Website Settings → Microphone → Allow, then reload. Or use the app without the mic.':'Could not start the mic: '+(err&&err.message||err));
+    updateMicUI();
   }
 }
 
@@ -723,6 +748,7 @@ function showTab(t){
   if(t==='song'){parkPerf();$('songSetup').classList.remove('hidden');$('songStage').classList.add('hidden');$('songResult').classList.add('hidden');}
   if(t==='learn'){if(L.q)L.render();else renderMap();}
   if(t==='hunt'){$('huntStage').classList.add('hidden');}
+  updateMicUI();
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
@@ -749,7 +775,7 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
     return p;
   },
   start(opts){
-    if(!ctx)return;
+    ensureCtx();
     const chk=parseSong(opts.text);
     if(chk.errors.length||!chk.notes.length){opts.onError&&opts.onError(chk.errors.length?'Couldn\'t read: '+chk.errors.slice(0,5).join(' '):'No notes to play.');return;}
     if(clickBus){try{clickBus.disconnect();}catch(e){}}
@@ -820,6 +846,7 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
   },
   finish(){
     this.running=false;
+    if(!micOn()){this.selfCheck();return;}
     const lat=this.latency();
     const exp=this.p.notes.map(n=>({...n,t:this.notesStart+n.beat*this.beat,durSec:n.dur*this.beat}));
     const evs=this.events.map(e=>({t:e.t-lat.L,midi:e.midi}));
@@ -827,13 +854,33 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
     this.render(g,lat);
     this.opts.onResult&&this.opts.onResult(g,this.streak);
   },
-  render(g,lat){
+  // mic off: she judges the run herself; it still counts toward the clean-run streak
+  selfCheck(){
     $('songStage').classList.add('hidden');$('songResult').classList.remove('hidden');
+    $('chips').innerHTML='';$('resScore').classList.add('hidden');$('streakText').innerHTML='';$('copyMsg').textContent='';
+    $('againBtn').parentElement.classList.add('hidden');
+    $('sumText').innerHTML=`<div class="big">Mic is off — how was it?</div><div class="help">Clean = every note right, steady with the click, no stops.</div>
+      <div class="answers"><button class="btn" id="selfClean">✨ Clean run</button><button class="btn" id="selfNot">Not clean yet</button></div>`;
+    const done=clean=>{$('againBtn').parentElement.classList.remove('hidden');const n=this.p.notes.length;
+      const g={res:[],extras:[],correct:clean?n:0,total:n,onTime:clean?n:0,avgAbs:0,mean:0,clean,tendency:'self-checked',self:true};
+      this.render(g,null);this.opts.onResult&&this.opts.onResult(g,this.streak);};
+    $('selfClean').onclick=()=>done(true);$('selfNot').onclick=()=>done(false);
+  },
+  render(g,lat){
+    $('songStage').classList.add('hidden');$('songResult').classList.remove('hidden');$('againBtn').parentElement.classList.remove('hidden');
     const key=this.opts.key||(this.opts.name+'@'+this.bpm);
     if(key!==this.streakKey){this.streakKey=key;this.streak=0;}
     this.streak=g.clean?this.streak+1:0;
     if(this.streak===3)ach('metronome');
     const ms=x=>Math.round(x*1000);
+    const need0=this.opts.need||3;
+    if(g.self){
+      $('sumText').innerHTML=`<div class="big ${g.clean?'clean':'notclean'}">${g.clean?'✨ CLEAN RUN':'Not clean yet'}</div><div class="help">self-checked (mic off)</div>`;
+      $('chips').innerHTML='';$('resScore').classList.add('hidden');
+      $('streakText').innerHTML=`Clean runs in a row: <b>${this.streak}</b> / ${need0}`+(this.streak>=need0?' 🏆 target met!':'');
+      this.lastText=`${this.opts.name} @ ${this.bpm} bpm — self-checked (mic off): ${g.clean?'CLEAN':'not clean'} — clean streak ${this.streak}/${need0}`;
+      logEvt(this.lastText);return;
+    }
     $('sumText').innerHTML=
       `<div class="big ${g.clean?'clean':'notclean'}">${g.clean?'✨ CLEAN RUN':'Not clean yet'}</div>`+
       `Notes: <b>${g.correct}/${g.total}</b> correct · On time: <b>${g.onTime}/${g.total}</b><br>`+
@@ -871,7 +918,7 @@ function label(n){return pretty(n.name)+(n.finger?' (finger '+n.finger+')':'');}
 const task={active:false,
   start(cfg,host,onFinish){
     this.cfg=cfg;this.items=cfg.items;this.onFinish=onFinish;this.idx=0;this.mistakes=0;this.first=0;this.times=[];this.peaks=[];this.missed=new Set();
-    host.innerHTML=`<div class="dots"></div><div class="tkStaff staffwrap hidden"></div><div class="now tkName"></div><div style="text-align:center"><span class="finger tkFinger hidden"></span></div><div class="tkKb"></div><div class="feedback tkFb"></div>`;
+    host.innerHTML=`<div class="dots"></div><div class="tkStaff staffwrap hidden"></div><div class="now tkName"></div><div style="text-align:center"><span class="finger tkFinger hidden"></span></div><div class="tkKb"></div><div class="feedback tkFb"></div><div class="help tkOff hidden" style="text-align:center">Mic off — play it, then tap the note you played.</div><div class="answers tkAns"></div>`;
     this.el=k=>host.querySelector('.'+k);this.host=host;
     this.active=true;this.show();
   },
@@ -892,6 +939,15 @@ const task={active:false,
     this.el('tkFinger').classList.toggle('hidden',!it.finger);this.el('tkFinger').textContent='finger '+it.finger;
     this.el('tkKb').innerHTML=(cfg.hint===true&&!it.any)?this.kbHtml(it):'';
     this.el('tkFb').textContent='';this.el('tkFb').className='feedback tkFb';
+    // mic off: answer buttons stand in for the mic
+    const ans=this.el('tkAns'),off=!micOn();this.el('tkOff').classList.toggle('hidden',!off);ans.innerHTML='';
+    if(off){
+      const opts=it.any?['✓ Played']:letterOpts(it.letter);
+      ans.innerHTML=opts.map(o=>`<button class="btn">${o}</button>`).join('');
+      ans.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(!this.active)return;
+        if(it.any){this.onset({midi:60,self:true});return;}
+        const m=N(b.textContent+it.oct);this.onset({midi:m,self:true});});
+    }
     this.t0=performance.now();
   },
   onset(ev){
@@ -906,10 +962,11 @@ const task={active:false,
         this.el('tkFb').textContent='✓';this.el('tkFb').className='feedback tkFb ok';
         const avg=this.times.length?this.times.reduce((a,b)=>a+b,0)/this.times.length:null;
         this.onFinish({mistakes:this.mistakes,first:this.first,total:this.items.length,avg,peaks:this.peaks.slice()});return;}
+      if(ev.self)this.selfUsed=true;
       this.show();this.el('tkFb').textContent='✓';this.el('tkFb').className='feedback tkFb ok';
     }else{
       this.mistakes++;this.missed.add(this.idx);
-      this.el('tkFb').textContent='✗ heard '+pretty(midiName(ev.midi))+(this.cfg.strict&&pc(ev.midi)===pc(it.midi)?' (wrong octave)':'');this.el('tkFb').className='feedback tkFb bad';
+      this.el('tkFb').textContent=(ev.self?'✗ that was '+pretty(it.letter)+', not '+pretty(midiName(ev.midi)).replace(/\d+$/,''):'✗ heard '+pretty(midiName(ev.midi)))+(!ev.self&&this.cfg.strict&&pc(ev.midi)===pc(it.midi)?' (wrong octave)':'');this.el('tkFb').className='feedback tkFb bad';
       if(this.cfg.hint==='miss')this.el('tkKb').innerHTML=this.kbHtml(it);
     }
   }
@@ -1144,7 +1201,7 @@ function renderMap(){
   $('map').querySelectorAll('.quest[data-q]').forEach(b=>b.onclick=()=>L.open(allQ().find(q=>q.id===b.dataset.q)));
 }
 const L={q:null,i:0,okSteps:{},
-  open(q){this.tok=(this.tok||0)+1;this.q=q;this.i=0;this.manual=0;$('map').classList.add('hidden');$('lessonDone').classList.add('hidden');$('lesson').classList.remove('hidden');this.render();window.scrollTo(0,0);},
+  open(q){this.tok=(this.tok||0)+1;this.q=q;this.selfChecked=!micOn();this.i=0;this.manual=0;$('map').classList.add('hidden');$('lessonDone').classList.add('hidden');$('lesson').classList.remove('hidden');this.render();window.scrollTo(0,0);},
   close(){if(song.running)song.stop();task.active=false;parkPerf();this.tok=(this.tok||0)+1;this.q=null;renderMap();},
   render(){
     const q=this.q,s=q.steps[this.i];
@@ -1165,14 +1222,14 @@ const L={q:null,i:0,okSteps:{},
     STEPS[s.t](s,{host:$('stepHost'),body:$('stepBody'),msg:(t,ok)=>{if(!live())return;$('stepMsg').textContent=t;$('stepMsg').className='feedback'+(ok===true?' ok':ok===false?' bad':'');},
       done:()=>{if(!live())return;this.setDone(true);if(s.achOnDone)ach(s.achOnDone);},failed:()=>{if(!live())return;this.fails=(this.fails||0)+1;if(this.fails>=2&&!q.boss)$('stepOverride').classList.remove('hidden');},live});
   },
-  setDone(v){this.stepDone=v;$('stepNext').disabled=!v;},
+  setDone(v){this.stepDone=v;$('stepNext').disabled=!v;if(v&&!micOn())this.selfChecked=true;},
   next(){if(!this.stepDone)return;task.active=false;if(song.running)song.stop();
     if(this.i<this.q.steps.length-1){this.i++;this.render();window.scrollTo(0,0);}else this.finish();},
   finish(){
     const q=this.q,first=!P.done[q.id];
     const gain=first?q.xp:15;
     const hadAny=Object.keys(P.done).length>0;
-    P.done[q.id]=dayStr(new Date());logEvt(`completed ${q.boss?'boss '+q.title:'quest '+q.id+' '+q.title}${this.manual?` (${this.manual} step(s) marked done manually)`:''}`);
+    P.done[q.id]=dayStr(new Date());logEvt(`completed ${q.boss?'boss '+q.title:'quest '+q.id+' '+q.title}${this.manual?` (${this.manual} step(s) marked done manually)`:''}${this.selfChecked?' (self-checked, mic off)':''}`);
     const r=addXP(gain,'quest');
     if(!hadAny)ach('first');
     if(q.boss)ach('boss');
@@ -1271,6 +1328,13 @@ const STEPS={
     btn.onclick=()=>{opts.view=resolveView(world);song.start(opts);};
   },
   dyn(s,ui){
+    if(!micOn()){
+      ui.body.innerHTML=`<p>Mic is off. Play <b>${s.seq.join(' ')}</b> first <b>p — soft</b>, then the same <b>f — loud</b>. Listen: is the difference obvious?</p>`;
+      ui.host.innerHTML=`<div class="answers"><button class="btn">✓ Clear difference</button><button class="btn">Not yet</button></div>`;
+      const [y,n]=ui.host.querySelectorAll('button');
+      y.onclick=()=>{ui.msg('Self-checked ✓',true);ui.done();};n.onclick=()=>ui.msg('Softer soft, louder loud — relaxed arm. Try again.',false);
+      return;
+    }
     const items=()=>s.seq.map(parseNoteName);
     let soft=null;
     const phase1=()=>{
@@ -1344,6 +1408,16 @@ const hunt={active:false,
     $('huntName').classList.toggle('hidden',!$('showName').checked);
     $('huntFb').textContent='';$('huntFb').className='feedback';
     this.lock=false;
+    $('huntAns').innerHTML='';
+    if(!micOn()){
+      const nm=x=>pretty(x).replace(/\d+$/,'');const correct=nm(n.name);
+      const pool=['C','D','E','F','G','A','B','C♯','E♭','F♯','A♭','B♭'].filter(x=>x!==correct);
+      const opts=shuffle([correct,...shuffle(pool).slice(0,3)]);
+      $('huntAns').innerHTML=opts.map(o=>`<button class="btn">${o}</button>`).join('');
+      $('huntAns').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+        if(b.textContent===correct)this.onset({midi:this.target});
+        else this.onset({midi:N(b.textContent.replace('♯','#').replace('♭','b')+n.oct),self:true});});
+    }
   },
   onset(ev){
     if(this.lock||ev.midi==null)return;
@@ -1370,6 +1444,7 @@ const hunt={active:false,
     this.lastText=`Note Hunt (${$('huntSel').selectedOptions[0].text}): ${this.score}/10 first try, avg ${avg}s`;
     logEvt(this.lastText);
     if(this.score)addXP(this.score*2,'hunt');
+    $('huntAns').innerHTML='';
   }
 };
 $('huntStart').onclick=()=>hunt.start();
@@ -1385,6 +1460,9 @@ const tuner={show(r){
 
 // ================== Settings ==================
 $('startBtn').onclick=startMic;
+$('noMicBtn').onclick=startNoMic;
+$('micPill').onclick=()=>{if(micOn())stopMic();else startMic();};
+$('micToggle').onchange=()=>{if($('micToggle').checked)startMic();else if(micOn())stopMic();};
 $('viewSel').value=settings.view;$('viewSel').onchange=()=>{settings.view=$('viewSel').value;store.set('view',settings.view);drawSongPreview();};
 $('solfOn').checked=settings.solf;$('solfOn').onchange=()=>{settings.solf=$('solfOn').checked;store.set('solf',settings.solf);};
 $('strictOct').checked=settings.strict;$('strictOct').onchange=()=>{settings.strict=$('strictOct').checked;store.set('strict',settings.strict);};
@@ -1402,7 +1480,7 @@ $('restoreBtn').onclick=()=>{
   }catch(e){$('backupMsg').textContent='That code didn’t work.';}
 };
 
-renderMap();
+renderMap();updateMicUI();
 window.__kol={scoreSVG,Engine,yin,grade,parseSong,staffSVG,kbSVG,midiName,SONGS,WORLDS,STEPS,genQuiz,task,L,P,levelOf,T};
 </script>
 </body>

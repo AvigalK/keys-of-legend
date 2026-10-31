@@ -557,6 +557,9 @@ function durKind(b){
   return {base:'q',dot:false};
 }
 const dOf=pt=>LIDX[pt.letter]+7*(pt.oct-4); // diatonic steps from C4
+// key signatures: staff position (diatonic steps from C4) on treble (t) and bass (b)
+const KS_SH=[{letter:'F',acc:1,t:10,b:-4},{letter:'C',acc:1,t:7,b:-7}],KS_FL=[{letter:'B',acc:-1,t:6,b:-8}];
+const KEYSIG={G:KS_SH.slice(0,1),Em:KS_SH.slice(0,1),D:KS_SH,F:KS_FL,Dm:KS_FL};
 function scoreStaffMode(p){
   let t=false,b=false;p.notes.forEach(n=>n.parts.forEach(pt=>{if(dOf(pt)>=0)t=true;else b=true;}));
   return t&&b?'grand':b?'B':'T';
@@ -577,12 +580,15 @@ function scoreSVG(p,o={}){
     const staves=mode==='grand'?['T','B']:[mode];
     const yOf=(st,d)=>st==='T'?yT(d):yB(d);
     const first=b0===0&&o.time!==false;
-    const left=40+(first?16:0),barW=(W-left-8)/per,xEnd=left+barW*(b1-b0);
+    const ks=KEYSIG[o.key]||[];
+    const left=40+ks.length*8+(first?16:0),barW=(W-left-8)/per,xEnd=left+barW*(b1-b0);
     const sTop=st=>st==='T'?yT(10):yB(-2),sBot=st=>st==='T'?yT(2):yB(-10);
     staves.forEach(st=>{
       for(let i=0;i<5;i++){const y=sTop(st)+i*s;out+=`<line x1="6" x2="${xEnd}" y1="${y}" y2="${y}" stroke="#2b2733" stroke-width="1"/>`;}
       out+=st==='T'?`<text x="8" y="${yT(2)+6}" font-size="${s*5.6}" font-family="${F}" fill="#2b2733">𝄞</text>`:`<text x="9" y="${yB(-6)+8}" font-size="${s*3.6}" font-family="${F}" fill="#2b2733">𝄢</text>`;
-      if(first)out+=`<text x="${left-12}" y="${sTop(st)+15}" text-anchor="middle" font-size="17" font-weight="800" font-family="serif" fill="#2b2733">${bpb}</text><text x="${left-12}" y="${sTop(st)+31}" text-anchor="middle" font-size="17" font-weight="800" font-family="serif" fill="#2b2733">4</text>`;
+      ks.forEach((a,i)=>{const d=st==='T'?a.t:a.b;out+=`<text class="ks" x="${36+i*8}" y="${yOf(st,d)+5}" font-size="15" font-family="serif" fill="#2b2733">${a.acc===1?'♯':'♭'}</text>`;});
+      const [tsN,tsD]=(o.ts||bpb+'/4').split('/');
+      if(first)out+=`<text x="${left-12}" y="${sTop(st)+15}" text-anchor="middle" font-size="17" font-weight="800" font-family="serif" fill="#2b2733">${tsN}</text><text x="${left-12}" y="${sTop(st)+31}" text-anchor="middle" font-size="17" font-weight="800" font-family="serif" fill="#2b2733">${tsD}</text>`;
     });
     const sysTop=sTop(staves[0]),sysBot=sBot(staves[staves.length-1]);
     out+=`<line x1="6" x2="6" y1="${sysTop}" y2="${sysBot}" stroke="#2b2733" stroke-width="1.4"/>`;
@@ -620,7 +626,8 @@ function scoreSVG(p,o={}){
           led.forEach(q=>out+=`<line x1="${x-8}" x2="${x+8}" y1="${yOf(st,q)}" y2="${yOf(st,q)}" stroke="#2b2733" stroke-width="1"/>`);
           const hollow=dk.base==='w'||dk.base==='h';
           out+=`<ellipse class="nh" data-st="${st}" data-d="${d}" data-k="${dk.base}" data-i="${idx}" cx="${x}" cy="${y}" rx="${dk.base==='w'?5.4:4.6}" ry="3.5" transform="rotate(-20 ${x} ${y})" fill="${hollow?'#fbf8f0':col}" stroke="${col}" stroke-width="${hollow?1.6:0.8}"/>`;
-          if(h.pt.acc)out+=`<text x="${x-14}" y="${y+5}" font-size="15" font-family="serif" fill="${col}">${h.pt.acc===1?'♯':'♭'}</text>`;
+          const kAcc=(ks.find(a=>a.letter===h.pt.letter)||{acc:0}).acc;
+          if(h.pt.acc!==kAcc)out+=`<text class="acc" x="${x-14}" y="${y+5}" font-size="15" font-family="serif" fill="${col}">${h.pt.acc===1?'♯':h.pt.acc===-1?'♭':'♮'}</text>`;
           if(dk.dot)out+=`<circle class="dot" cx="${x+8.5}" cy="${d%2===0?y-s/2:y}" r="1.5" fill="${col}"/>`;
         });
         if(dk.base!=='w'){
@@ -667,9 +674,9 @@ const settings={admin:store.get('admin',false),view:store.get('view','auto'),sol
 const sensToDb=v=>24-2*v;
 // which notation to show: staff (sheet music), names (letters), or both
 function resolveView(world){return settings.view==='auto'?(world!=null&&world>=2?'staff':'both'):settings.view;}
-function pieceView(text,view,bpb){
+function pieceView(text,view,bpb,ex={}){
   const p=parseSong(text);let h='';
-  if(view!=='names'&&p.notes.length)h+=`<div class="staffwrap">${scoreSVG(p,{bpb})}</div>`;
+  if(view!=='names'&&p.notes.length)h+=`<div class="staffwrap">${scoreSVG(p,{bpb,ts:ex.ts,key:ex.key})}</div>`;
   if(view!=='staff')h+=`<div class="mono">${glance(text)}</div>`;
   return h;
 }
@@ -741,6 +748,14 @@ function click(at,accent){
   o.connect(g);g.connect(clickBus||ctx.destination);o.start(at);o.stop(at+0.04);
 }
 
+// soft piano-like tones (ear training); arp = play one after another
+function playTones(midis,arp){
+  ensureCtx();const t0=ctx.currentTime+0.05;
+  midis.forEach((m,i)=>{const at=t0+(arp?i*0.45:0),f=440*Math.pow(2,(m-69)/12);
+    const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=f;
+    g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(0.25,at+0.01);g.gain.exponentialRampToValueAtTime(0.001,at+1.6);
+    o.connect(g);g.connect(ctx.destination);o.start(at);o.stop(at+1.7);});
+}
 // ---------- tabs ----------
 let tab='learn';
 function showTab(t){
@@ -773,9 +788,11 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
     const p=parseSong(opts.text);
     const bpm=Math.max(30,Math.min(200,+opts.bpm||80)),beat=60/bpm,bpb=opts.bpb||4;
     Object.assign(this,{opts,p,bpm,beat,bpb,c0,events:[]});
-    this.countClicks=Array.from({length:bpb},(_,k)=>c0+k*beat);
-    this.notesStart=c0+bpb*beat;
-    this.playClicks=opts.click?Array.from({length:Math.ceil(p.totalBeats)},(_,b)=>this.notesStart+b*beat):[];
+    const clk=opts.clk||1;let nc=Math.round(bpb/clk);if(nc<3)nc*=2; // compound time: click on the dotted quarter, two bars of count-in
+    Object.assign(this,{clk,nCount:nc});
+    this.countClicks=Array.from({length:nc},(_,k)=>c0+k*clk*beat);
+    this.notesStart=c0+nc*clk*beat;
+    this.playClicks=opts.click?Array.from({length:Math.ceil(p.totalBeats/clk-1e-9)},(_,b)=>this.notesStart+b*clk*beat):[];
     this.end=this.notesStart+p.totalBeats*beat+0.25;
     return p;
   },
@@ -787,7 +804,7 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
     clickBus=ctx.createGain();clickBus.connect(ctx.destination);
     this.prepare(opts,ctx.currentTime+0.7);
     this.countClicks.forEach((t,k)=>click(t,k===0));
-    this.playClicks.forEach((t,b)=>click(t,b%this.bpb===0));
+    this.playClicks.forEach((t,b)=>click(t,Math.abs((b*this.clk)%this.bpb)<1e-6));
     this.running=true;this._sk=null;
     $('songStage').classList.remove('hidden');$('songResult').classList.add('hidden');
     $('heardNote').textContent='';
@@ -806,22 +823,24 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
   tick(){
     if(!this.running)return;
     const now=ctx.currentTime,beat=this.beat,bpb=this.bpb;
-    const bpos=(now-this.c0)/beat;
-    const frac=bpos-Math.floor(bpos);
-    $('beatDot').className='beat'+(bpos>=0&&frac<0.18?(Math.floor(bpos)%bpb===0?' accent':' flash'):'');
+    const clk=this.clk||1,cpos=(now-this.c0)/(beat*clk),cin=this.nCount||bpb;
+    const bpos=cpos<cin?cpos*clk:(now-this.c0)/beat;
+    const frac=cpos-Math.floor(cpos);
+    $('beatDot').className='beat'+(cpos>=0&&frac<0.18?(Math.abs((Math.floor(cpos)*clk)%bpb)<1e-6?' accent':' flash'):'');
     const view=this.opts.view||'both';
     const showScore=(i)=>{if(view==='names'){$('stageScore').classList.add('hidden');return;}
       const per=2,sys=Math.floor(Math.floor(this.p.notes[i].beat/bpb+1e-9)/per),key=sys+':'+i;
       $('stageScore').classList.remove('hidden');
-      if(key!==this._sk){this._sk=key;$('stageScore').innerHTML=scoreSVG(this.p,{bpb,from:sys*per,to:sys*per+per,per,hl:i});}};
-    if(bpos<bpb){
+      if(key!==this._sk){this._sk=key;$('stageScore').innerHTML=scoreSVG(this.p,{bpb,ts:this.opts.ts,key:this.opts.key,from:sys*per,to:sys*per+per,per,hl:i});}};
+    const inCount=cpos<cin;
+    if(inCount){
       showScore(0);
       $('countNum').classList.remove('hidden');$('noteBox').classList.add('hidden');
-      $('countNum').textContent=bpos<0?'·':String(Math.floor(bpos)+1);
+      $('countNum').textContent=cpos<0?'·':String(Math.floor(cpos)+1);
       $('nextNotes').textContent=view==='staff'?'':'first: '+label(this.p.notes[0]);
     }else{
       $('countNum').classList.add('hidden');$('noteBox').classList.toggle('hidden',view==='staff');
-      const sb=bpos-bpb;const notes=this.p.notes;
+      const sb=(now-this.notesStart)/beat;const notes=this.p.notes;
       let i=notes.findIndex(n=>n.beat+Math.min(n.dur,1)*0.5>sb);
       if(i<0)i=notes.length-1;
       showScore(i);
@@ -895,7 +914,7 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
     const colors={};g.res.forEach((r,i)=>{colors[i]=r.status!=='hit'?'#d8434f':(r.timing==='perfect'||r.timing==='good')?'#2e9e62':'#d68a1f';});
     const showRes=(this.opts.view||'both')!=='names';
     $('resScore').classList.toggle('hidden',!showRes);
-    if(showRes)$('resScore').innerHTML=scoreSVG(this.p,{bpb:this.bpb,colors});
+    if(showRes)$('resScore').innerHTML=scoreSVG(this.p,{bpb:this.bpb,ts:this.opts.ts,key:this.opts.key,colors});
     $('chips').innerHTML=g.res.map(r=>{
       let cls='bad',top='✗',bot='';
       if(r.status==='miss'){top='—';bot='missed';}
@@ -987,7 +1006,13 @@ const whitesIn=(a,b)=>{const r=[];for(let m=N(a);m<=N(b);m++)if(isWhite(m))r.pus
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function letterOpts(correct){return shuffle([correct,...shuffle(LETTERS.filter(l=>l!==correct)).slice(0,3)]);}
 function genQuiz(s){
-  if(s.kind==='mc')return s.items.map(it=>({html:`<div class="now" style="font-size:22px;text-align:left">${it.q}</div>`,opts:shuffle(it.opts),a:it.a,why:it.why||''}));
+  if(s.kind==='mc')return s.items.map(it=>({html:`<div class="now" style="font-size:22px;text-align:left">${it.q}</div>`+(it.score?`<div class="staffwrap">${scoreSVG(parseSong(it.score),{bpb:it.bpb,ts:it.ts,key:it.key,per:1})}</div>`:'')+(it.kb?kbFromSpec(it.kb):''),opts:shuffle(it.opts),a:it.a,why:it.why||'',play:it.play}));
+  if(s.kind==='ear'){ // hear a chord, name its quality
+    const roots=['C4','D4','E4','F4','G4','A3','D3'];const qs=[];
+    for(let i=0;i<s.n;i++){const r=N(roots[Math.floor(Math.random()*roots.length)]);const minor=Math.random()<0.5;
+      qs.push({html:`<div class="now" style="font-size:22px;text-align:left">Major or minor?</div><div class="sub">Tap ▶ to hear it again.</div>`,opts:['Major','Minor'],a:minor?'Minor':'Major',why:minor?'Minor — darker':'Major — brighter',play:[r,r+(minor?3:4),r+7]});}
+    return qs;
+  }
   const pool=whitesIn(s.from,s.to),qs=[];let last=null;
   for(let i=0;i<s.n;i++){
     let m;do{m=pool[Math.floor(Math.random()*pool.length)];}while(m===last&&pool.length>1);last=m;
@@ -1182,7 +1207,89 @@ const WORLDS=[
    {t:'random',title:'Read 20 notes',html:`<p>Grand staff. 18 of 20 first try.</p>`,from:'C3',to:'C5',n:20,pass:18,show:'staff'}
   ]}}
 ];
-const LOCKED_WORLDS=['Rhythm Rapids','Scale Summit','Harmony Harbor','Classic Castle','Expression Peaks'];
+// ================== Lesson content: World 3+ ==================
+Object.assign(T,{
+  eighths:'C4/1 D4/2 E4/3 F4/4 | G4e/5 F4e/4 E4e/3 D4e/2 C4h/1 | C4e/1 D4e/2 E4e/3 F4e/4 G4/5 G4/5 | G4e/5 F4e/4 E4e/3 D4e/2 C4h/1',
+  legato:'C4/1 D4/2 E4/3 F4/4 | G4h/5 E4h/3 | F4/4 E4/3 D4/2 E4/3 | C4w/1',
+  stacc:'C4/1 E4/3 G4/5 E4/3 | C4/1 E4/3 G4h/5 | G4/5 E4/3 C4/1 E4/3 | G4/5 E4/3 C4h/1',
+  dRH:'D4/1 E4/2 F#4/3 G4/4 | A4/5 G4/4 F#4/3 E4/2 | D4w/1',
+  dLH:'D3/5 E3/4 F#3/3 G3/2 | A3/1 G3/2 F#3/3 E3/4 | D3w/5',
+  pickup:'Rq C4/1 E4/3 F4/4 | G4w/5 | Rq C4/1 E4/3 F4/4 | G4w/5',
+  saintsRH:'Rq C4/1 E4/3 F4/4 | G4w/5 | Rq C4/1 E4/3 F4/4 | G4w/5 | Rq C4/1 E4/3 F4/4 | G4h/5 E4h/3 | C4h/1 E4h/3 | D4w/2 | Rq E4/3 E4/3 D4/2 | C4h./1 C4/1 | E4h/3 G4/5 G4/5 | G4h/5 F4h/4 | Rh E4/3 F4/4 | G4h/5 E4h/3 | C4h/1 D4h/2 | C4w/1',
+  saintsHT:'Rq C4/1 E4/3 F4/4 | G4+C3w/5 | Rq C4+C3:h./1 E4/3 F4/4 | G4+C3w/5 | Rq C4+C3:h./1 E4/3 F4/4 | G4+C3:wh/5 E4h/3 | C4+C3:wh/1 E4h/3 | D4+G3w/2 | Rq E4+C3:h./3 E4/3 D4/2 | C4+C3:wh./1 C4/1 | E4+C3:wh/3 G4/5 G4/5 | G4+F3:wh/5 F4h/4 | Rh E4+C3:h/3 F4/4 | G4+C3:wh/5 E4h/3 | C4+G3:wh/1 D4h/2 | C4+C3w/1'
+});
+const RHY=[ // counting drills: rests/held beats in ( )
+  {q:'How do you count this bar?',score:'C4 C4e C4e C4h',opts:['1 2 & 3 (4)','1 & 2 3 (4)','1 2 3 & (4)','1 2 3 4'],a:'1 2 & 3 (4)'},
+  {q:'How do you count this bar?',score:'C4q. C4e C4h',opts:['1 (2) & 3 (4)','1 & 2 3 (4)','1 2 & 3 (4)','1 2 3 4'],a:'1 (2) & 3 (4)'},
+  {q:'How do you count this bar?',score:'C4e C4e C4e C4e C4h',opts:['1 & 2 & 3 (4)','1 2 3 4 5','1 & 2 3 (4)','1 2 & 3 (4)'],a:'1 & 2 & 3 (4)'},
+  {q:'How do you count this bar?',score:'Rq C4 C4e C4e C4',opts:['(1) 2 3 & 4','1 2 3 & 4','(1) 2 & 3 4','1 & 2 3 4'],a:'(1) 2 3 & 4'}];
+WORLDS.push(
+ {id:3,name:'Rhythm Rapids',sub:'eighths, dotted rhythms, articulation, sharps & flats',quests:[
+  {id:'3.1',title:'Eighth notes',xp:50,steps:[
+   {t:'read',title:'Two per beat',html:`<p>An <b>eighth note</b> is half a beat: a filled head with a <b>flag</b> (or two joined by a beam).</p><p>Count them <b>1 & 2 & 3 & 4 &</b> — the number is on the click, the “&” exactly halfway to the next click.</p><p>Say the count out loud before you play. Fingers stay close to the keys; eighths are small, light movements.</p>`},
+   {t:'quiz',title:'Count it',kind:'mc',pass:3,items:[RHY[0],RHY[2],
+     {q:'Two eighth notes last…',opts:['½ beat','1 beat','2 beats','4 beats'],a:'1 beat'},
+     {q:'One eighth note lasts…',opts:['½ beat','1 beat','2 beats','¼ beat'],a:'½ beat'}]},
+   {t:'song',title:'Eighths, slowly',html:`<p>Count “1 & 2 &” out loud.</p>`,text:T.eighths,bpm:60,need:1},
+   {t:'song',title:'Eighths at 72',text:T.eighths,bpm:72,need:2}
+  ]},
+  {id:'3.2',title:'Dotted quarter + eighth',xp:50,steps:[
+   {t:'read',title:'The dot',html:`<p>A <b>dot</b> adds half the note's value. Dotted half = 3 beats. <b>Dotted quarter = 1½ beats</b>.</p><p>Dotted quarter + eighth fills 2 beats: play on <b>1</b>, hold through 2, play the eighth on <b>“2 &”</b>. Count: <b>1 (2) & 3</b>.</p><p>Now you can play Ode to Joy with its real rhythm.</p>`},
+   {t:'quiz',title:'Count it',kind:'mc',pass:3,items:[RHY[1],
+     {q:'A dotted quarter lasts…',opts:['1 beat','1½ beats','2 beats','3 beats'],a:'1½ beats'},
+     {q:'A dotted half lasts…',opts:['2 beats','2½ beats','3 beats','4 beats'],a:'3 beats'},
+     {q:'Dotted quarter + eighth = ?',opts:['1½ beats','2 beats','2½ beats','3 beats'],a:'2 beats'}]},
+   {t:'song',title:'Ode to Joy · real rhythm',text:T.ode2,bpm:66,need:1},
+   {t:'song',title:'Target tempo',text:T.ode2,bpm:80,need:3}
+  ]},
+  {id:'3.3',title:'Ties, slurs & legato',xp:50,steps:[
+   {t:'read',title:'Two curved lines',html:`<p>A <b>tie</b> joins two notes of the <b>same pitch</b>: play once, hold for both values together. (In this app a tied note is simply written as one longer note.)</p><p>A <b>slur</b> curves over <b>different</b> notes: play them <b>legato</b> — smoothly connected, no gaps.</p><p>Legato on the keys: the next key goes down exactly as the previous one comes up. Like walking: one foot lands as the other lifts.</p>`},
+   {t:'quiz',title:'Tie or slur?',kind:'mc',pass:3,items:[
+     {q:'A curve joins two Gs. You…',opts:['Play G once, hold both values','Play G twice','Play it short','Skip the second G'],a:'Play G once, hold both values'},
+     {q:'A curve over C D E F means…',opts:['Play them smoothly connected','Play only C','Hold C the whole time','Play them short'],a:'Play them smoothly connected'},
+     {q:'A whole note tied to a half note lasts…',opts:['4 beats','5 beats','6 beats','2 beats'],a:'6 beats'},
+     {q:'Legato means…',opts:['Smooth, no gaps','Short and detached','Loud','Fast'],a:'Smooth, no gaps'}]},
+   {t:'check',title:'Legato check',items:['Each key comes up exactly as the next goes down — no gap, no blur','Wrist stays level and quiet','Fingers stay close to the keys']},
+   {t:'song',title:'A legato phrase',html:`<p>One long slur over the whole line. Smooth as you can — listen for gaps.</p>`,text:T.legato,bpm:72,need:2}
+  ]},
+  {id:'3.4',title:'Staccato vs legato',xp:50,steps:[
+   {t:'read',title:'Short and light',html:`<p><b>Staccato</b> (a dot <b>above or below</b> the note head) = short and detached.</p><p>Bounce lightly from the <b>wrist</b>, like dribbling a small ball. The finger keeps its shape and does not stab; the key comes up straight away.</p><p>The mic checks your notes and timing. You judge the shortness, so listen.</p>`},
+   {t:'song',title:'Staccato',html:`<p>Every note short. Same steady beat.</p>`,text:T.stacc,bpm:76,need:2},
+   {t:'song',title:'Now legato',html:`<p>Same notes, now smooth and connected.</p>`,text:T.stacc,bpm:76,need:2},
+   {t:'check',title:'Self-check',items:['Staccato notes were clearly short, with silence between them','Staccato came from a loose wrist bounce, not a finger poke','Legato had no gaps']}
+  ]},
+  {id:'3.5',title:'Sharps, flats & naturals',xp:50,steps:[
+   {t:'read',title:'The black keys get names',html:`<p><b>Sharp ♯</b> = one half step <b>up</b> (the very next key to the right). <b>Flat ♭</b> = one half step <b>down</b>. <b>Natural ♮</b> cancels a sharp or flat.</p><p>So the black key between F and G is <b>F♯</b> — and also <b>G♭</b>. Same key, two names.</p><p>An accidental lasts until the end of the bar.</p>`,kb:{from:'C4',to:'B4',marks:{'C#4':'C♯','Eb4':'E♭','F#4':'F♯','Ab4':'A♭','Bb4':'B♭'}}},
+   {t:'quiz',title:'Name it',kind:'mc',pass:4,items:[
+     {q:'Name the yellow key',kb:{from:'C4',to:'B4',marks:{'F#4':'?'}},opts:['F♯','G♯','C♯','A♯'],a:'F♯'},
+     {q:'Name the yellow key',kb:{from:'C4',to:'B4',marks:{'Bb4':'?'}},opts:['B♭','E♭','A♭','D♭'],a:'B♭'},
+     {q:'A sharp moves a note…',opts:['Half step up','Half step down','Whole step up','An octave up'],a:'Half step up'},
+     {q:'F♯ in bar 1. Next F in the same bar is…',opts:['Still F♯','F natural','F♭','Silent'],a:'Still F♯'},
+     {q:'E♯ is the same key as…',opts:['F','E','D♯','F♯'],a:'F'}]},
+   {t:'notes',title:'Black-key hunt',html:`<p>Find each one. Any octave.</p>`,seq:['F#4','C#4','Bb3','Eb4','G#4','Ab3'],hint:'miss',kbRange:[N('C3'),N('B4')],maxMistakes:2},
+   {t:'read',title:'D position',html:`<p>Five-finger D position: RH thumb on <b>D4</b> — D E <b>F♯</b> G A = 1 2 3 4 5. Finger 3 plays the black key, so move the hand slightly in toward the black keys.</p><p>LH: pinky on <b>D3</b> — D E F♯ G A = 5 4 3 2 1.</p>`,kb:{from:'C4',to:'B4',marks:fingers('D4 E4 F#4 G4 A4',[1,2,3,4,5])}},
+   {t:'song',title:'D position · RH',text:T.dRH,bpm:66,need:2},
+   {t:'song',title:'D position · LH',text:T.dLH,bpm:66,need:2}
+  ]},
+  {id:'3.6',title:'Pickups',xp:50,steps:[
+   {t:'read',title:'Starting before beat 1',html:`<p>Many songs start on an <b>upbeat</b>: a short <b>pickup bar</b> before the first full bar.</p><p>“When the Saints” starts on beat 2: count <b>1</b> in silence, play C E F on <b>2 3 4</b>, and the big G lands on the next <b>1</b>.</p><p>Here the silent beat is shown as a rest so you can count it.</p>`},
+   {t:'song',title:'Saints · first lines',text:T.pickup,bpm:80,need:2}
+  ]},
+  {id:'3.7',title:'Song: When the Saints',xp:50,steps:[
+   {t:'read',title:'When the Saints Go Marching In',html:`<p>Traditional. RH stays in C position the whole song. The LH plays long notes: <b>C3</b> (finger 5), <b>G3</b> (finger 1) and once <b>F3</b> (finger 2).</p><p>Hold every long G for all four beats — that's where the song swings.</p>`},
+   {t:'song',title:'Right hand',text:T.saintsRH,bpm:80,need:2},
+   {t:'song',title:'Hands together, slow',text:T.saintsHT,bpm:70,need:1},
+   {t:'song',title:'Hands together',text:T.saintsHT,bpm:80,need:2}
+  ]}],
+  boss:{id:'B3',title:'The Rapids',xp:200,boss:true,steps:[
+   {t:'read',title:'👹 The Rapids',html:`<p>The river speeds up. Count four rhythms right, then ride the Saints at 90, hands together, three times clean.</p>`},
+   {t:'quiz',title:'Count 4 rhythms',kind:'mc',pass:4,items:RHY},
+   {t:'song',title:'Eighths @ 80',text:T.eighths,bpm:80,need:1},
+   {t:'song',title:'The Saints @ 90',text:T.saintsHT,bpm:90,need:3}
+  ]}}
+);
+const ALL_WORLD_NAMES=['Tutorial Island','Middle C Meadows','Grand Staff Grove','Rhythm Rapids','Scale Summit','Harmony Harbor','Classic Castle','Expression Peaks'];
+const LOCKED_WORLDS=ALL_WORLD_NAMES.slice(WORLDS.length);
 
 // ================== Map & lesson player ==================
 function allQ(){const a=[];WORLDS.forEach(w=>{w.quests.forEach(q=>a.push(q));a.push(w.boss);});return a;}
@@ -1202,7 +1309,7 @@ function renderMap(){
     });
     h+='</div>';
   });
-  h+=`<div class="card"><h3>Coming next</h3><div class="sub">Worlds 3–7: ${LOCKED_WORLDS.join(' · ')}. Until they're in the app, your chat teacher runs these lessons.</div></div>`;
+  if(LOCKED_WORLDS.length)h+=`<div class="card"><h3>Coming next</h3><div class="sub">Worlds ${WORLDS.length}–7: ${LOCKED_WORLDS.join(' · ')}. Until they're in the app, your chat teacher runs these lessons.</div></div>`;
   $('map').innerHTML=h;
   $('map').querySelectorAll('.quest[data-q]').forEach(b=>b.onclick=()=>L.open(allQ().find(q=>q.id===b.dataset.q)));
 }
@@ -1255,7 +1362,7 @@ const L={q:null,i:0,okSteps:{},
     $('lessonDone').classList.remove('hidden');
     $('lessonDone').innerHTML=`<div class="summary"><div class="big clean">${q.boss?'👹 Boss defeated!':'✨ Quest complete!'}</div>
       +${gain} XP${first?'':' (replay)'}${r.levelUp?` · ⬆️ Level ${levelOf(P.xp)}!`:''}${q.boss&&first?`<br>New rank: <b>${rank()}</b>`:''}</div>
-      ${nq?`<button class="btn big" id="doneNext" style="margin-top:12px">Next: ${nq.boss?'Boss · ':nq.id+' '}${nq.title} ›</button>`:'<p>All app worlds done! Ask your chat teacher for World 3.</p>'}
+      ${nq?`<button class="btn big" id="doneNext" style="margin-top:12px">Next: ${nq.boss?'Boss · ':nq.id+' '}${nq.title} ›</button>`:(LOCKED_WORLDS.length?`<p>All app worlds done! Ask your chat teacher for World ${WORLDS.length}.</p>`:'<p>🏆 Every world conquered. Endless Mode is with your chat teacher.</p>')}
       <button class="btn" id="doneMap" style="width:100%;margin-top:8px">Map</button>`;
     if(nq)$('doneNext').onclick=()=>L.open(nq);
     $('doneMap').onclick=()=>{this.q=null;renderMap();};
@@ -1280,8 +1387,9 @@ const STEPS={
     const startQ=()=>{qs=genQuiz(s);k=0;score=0;show();};
     const show=()=>{
       const Q=qs[k];
-      ui.host.innerHTML=`<div class="sub">Question ${k+1} / ${qs.length} · score ${score}</div>${Q.html}<div class="answers">${Q.opts.map(o=>`<button class="btn">${o}</button>`).join('')}</div>`;
+      ui.host.innerHTML=`<div class="sub">Question ${k+1} / ${qs.length} · score ${score}</div>${Q.html}${Q.play?'<button class="btn big qPlay" style="margin-top:8px">▶ Play</button>':''}<div class="answers">${Q.opts.map(o=>`<button class="btn">${o}</button>`).join('')}</div>`;
       ui.msg('');
+      if(Q.play){const pb=ui.host.querySelector('.qPlay');pb.onclick=()=>playTones(Q.play,Q.arp);playTones(Q.play,Q.arp);}
       ui.host.querySelectorAll('.answers .btn').forEach(b=>b.onclick=()=>{
         if(ui.host.dataset.lock==='1')return;ui.host.dataset.lock='1';
         const ok=b.textContent===Q.a;if(ok)score++;
@@ -1327,15 +1435,15 @@ const STEPS={
   song(s,ui){
     const world=+String(L.q.id).replace('B','').split('.')[0];
     const box=document.createElement('div'),seg=document.createElement('div');seg.className='seg viewSeg';
-    const info=document.createElement('div');info.className='sub';info.innerHTML=`${s.bpm} bpm${s.bpb===3?' · 3/4':''} · need <b>${s.need}</b> clean run${s.need>1?'s':''} in a row`;
-    const drawPiece=()=>{const v=resolveView(world);box.innerHTML=pieceView(s.text,v,s.bpb);wireSeg(seg,v,drawPiece);};
+    const info=document.createElement('div');info.className='sub';info.innerHTML=`${s.clk?s.bpm/s.clk+' bpm (dotted quarter)':s.bpm+' bpm'}${s.ts?' · '+s.ts:s.bpb===3?' · 3/4':''} · need <b>${s.need}</b> clean run${s.need>1?'s':''} in a row`;
+    const drawPiece=()=>{const v=resolveView(world);box.innerHTML=pieceView(s.text,v,s.bpb,s);wireSeg(seg,v,drawPiece);};
     ui.body.appendChild(seg);ui.body.appendChild(box);ui.body.appendChild(info);drawPiece();
     const wrap=document.createElement('div');
     const btn=document.createElement('button');btn.className='btn big';btn.textContent='▶ Start (count-in)';btn.style.marginTop='10px';
     ui.host.appendChild(btn);ui.host.appendChild(wrap);
     wrap.appendChild(PERF);$('songStage').classList.add('hidden');$('songResult').classList.add('hidden');
     song.streakKey='';
-    const opts={text:s.text,bpm:s.bpm,bpb:s.bpb,need:s.need,strict:s.strict,name:(L.q.boss?'Boss ':'Quest '+L.q.id+' ')+s.title,key:'L-'+L.q.id+'-'+L.i+'-'+Date.now(),click:settings.click,
+    const opts={text:s.text,bpm:s.bpm,bpb:s.bpb,ts:s.ts,key:s.key,clk:s.clk,need:s.need,strict:s.strict,name:(L.q.boss?'Boss ':'Quest '+L.q.id+' ')+s.title,key:'L-'+L.q.id+'-'+L.i+'-'+Date.now(),click:settings.click,
       onError:m=>ui.msg(m,false),
       // while playing, fold the full piece away so the live staff sits at the top of the phone screen
       onStart:()=>{btn.classList.add('hidden');[seg,box,info].forEach(e=>e.classList.add('hidden'));$('stepTitle').scrollIntoView({block:'start'});},

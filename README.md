@@ -3,7 +3,7 @@
 Gamified piano lessons for a 61-key keyboard, from zero to real repertoire. The app listens through the phone's microphone and checks the notes you play and your timing.
 
 **▶ Open it:** https://avigalk.github.io/keys-of-legend/
-On iPhone: open in Safari, tap 🎤 to allow the mic, then Share → **Add to Home Screen**.
+
 
 ## What's inside
 

@@ -310,11 +310,12 @@ function parseSong(text){
   const notes=[],rests=[],errors=[];let beat=0;
   for(const tok of String(text||'').replace(/\|/g,' ').split(/\s+/).filter(Boolean)){
     // note(+note)* ; a joined note may carry its own length after ':' (E4+C3:w = LH holds a whole note)
-    const m=/^((?:[A-Ga-g][#b]?-?\d(?::[whqes]\.?)?)(?:\+[A-Ga-g][#b]?-?\d(?::[whqes]\.?)?)*|[Rr])([whqesWHQES]?)(\.?)(?:\/([1-5]))?$/.exec(tok);
+    // a leading _ marks a left-hand note (always drawn on the bass staff)
+    const m=/^((?:_?[A-Ga-g][#b]?-?\d(?::[whqes]\.?)?)(?:\+_?[A-Ga-g][#b]?-?\d(?::[whqes]\.?)?)*|[Rr])([whqesWHQES]?)(\.?)(?:\/([1-5]))?$/.exec(tok);
     if(!m){errors.push(tok);continue;}
     const d=DUR[(m[2]||'q').toLowerCase()]*(m[3]?1.5:1);
     if(/^[Rr]$/.test(m[1])){rests.push({beat,dur:d});beat+=d;continue;}
-    const parts=m[1].split('+').map(x=>{const [nm,pd]=x.split(':');const q=parseNoteName(nm);if(!q)return null;q.dur=pd?DUR[pd[0]]*(pd[1]?1.5:1):d;return q;});
+    const parts=m[1].split('+').map(x=>{const lh=x[0]==='_';const [nm,pd]=x.replace(/^_/,'').split(':');const q=parseNoteName(nm);if(!q)return null;q.dur=pd?DUR[pd[0]]*(pd[1]?1.5:1):d;if(lh)q.lh=true;return q;});
     if(parts.some(x=>!x)){errors.push(tok);continue;}
     const p=parts[0];
     notes.push({...p,dur:d,parts,alts:parts.map(x=>x.midi),name:parts.map(x=>x.name).join('+'),beat,finger:m[4]?+m[4]:null});beat+=d;
@@ -570,18 +571,20 @@ function durKind(b){
   return {base:'q',dot:false};
 }
 const dOf=pt=>LIDX[pt.letter]+7*(pt.oct-4); // diatonic steps from C4
+// staff for a note: marked left-hand notes go to the bass; other notes struck with them stay in the treble; otherwise split at middle C
+const staffOf=(n,pt)=>pt.lh?'B':n.parts.some(x=>x.lh)?'T':(dOf(pt)>=0?'T':'B');
 // key signatures: staff position (diatonic steps from C4) on treble (t) and bass (b)
 const KS_SH=[{letter:'F',acc:1,t:10,b:-4},{letter:'C',acc:1,t:7,b:-7}],KS_FL=[{letter:'B',acc:-1,t:6,b:-8}];
 const KEYSIG={G:KS_SH.slice(0,1),Em:KS_SH.slice(0,1),D:KS_SH,F:KS_FL,Dm:KS_FL};
 function scoreStaffMode(p){
-  let t=false,b=false;p.notes.forEach(n=>n.parts.forEach(pt=>{if(dOf(pt)>=0)t=true;else b=true;}));
+  let t=false,b=false;p.notes.forEach(n=>n.parts.forEach(pt=>{if(staffOf(n,pt)==='T')t=true;else b=true;}));
   return t&&b?'grand':b?'B':'T';
 }
 // p: parseSong result. o: {bpb, from, to (bars), per (bars per line), hl (note index), colors {idx:color}, time}
 function scoreSVG(p,o={}){
   const bpb=o.bpb||4,nBars=Math.max(1,Math.ceil(p.totalBeats/bpb-1e-9));
   const from=o.from||0,to=Math.min(o.to!=null?o.to:nBars,nBars),per=o.per||2;
-  const mode=scoreStaffMode(p),s=8,W=340,sysH=mode==='grand'?156:92;
+  const mode=o.staff||scoreStaffMode(p),s=8,W=340,sysH=mode==='grand'?156:92;
   const nSys=Math.max(1,Math.ceil((to-from)/per));
   const INK='#1a1622',HL='#c98a00';
   let out=`<svg viewBox="0 0 ${W} ${nSys*sysH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="sheet music">`;
@@ -626,10 +629,11 @@ function scoreSVG(p,o={}){
       if(!inSys(n.beat))return;
       const x=xAt(n.beat),col=idx===o.hl?HL:(o.colors&&o.colors[idx])||INK;
       if(idx===o.hl)out+=`<rect x="${x-10}" y="${sysTop-14}" width="20" height="${sysBot-sysTop+28}" rx="4" fill="#f2c14e" opacity=".28"/>`;
-      const groups={};n.parts.forEach((pt,pi)=>{const d=dOf(pt);const st=mode==='grand'?(d>=0?'T':'B'):mode;(groups[st]=groups[st]||[]).push({pt,pi,d});});
-      Object.entries(groups).forEach(([st,g])=>{
+      const groups={},twoV=mode!=='grand'&&n.parts.some(x=>x.lh); // one staff, two hands: RH stems up, LH stems down
+      n.parts.forEach((pt,pi)=>{const d=dOf(pt);const st=mode==='grand'?staffOf(n,pt):mode;const k=st+(twoV?(pt.lh?'L':'R'):'');(groups[k]=groups[k]||[]).push({pt,pi,d});});
+      Object.entries(groups).forEach(([gk,g])=>{const st=gk[0];
         const dk=durKind(g[0].pt.dur!=null?g[0].pt.dur:n.dur);
-        const mid=st==='T'?6:-6,avg=g.reduce((a,h)=>a+h.d,0)/g.length,up=avg<mid;
+        const mid=st==='T'?6:-6,avg=g.reduce((a,h)=>a+h.d,0)/g.length,up=twoV?gk[1]==='R':avg<mid;
         const ys=g.map(h=>yOf(st,h.d));
         g.forEach(h=>{
           const y=yOf(st,h.d),d=h.d;
@@ -675,7 +679,7 @@ function glance(text){ // compact mobile view of a piece: 2 bars per line, finge
   const lines=[];for(let i=0;i<bars.length;i+=per)lines.push(bars.slice(i,i+per).join('  |  '));
   return lines.map(l=>l.split(/\s+/).map(tok=>{
     if(tok==='|')return '|';
-    const m=/^(.+?)(?:\/(\d))?$/.exec(tok.replace(/:[whqes]\.?/g,''));return pretty(m[1].replace(/([0-9])([whqes])/g,'$1<small>$2</small>')).replace(/ \+ /g,'+')+(m[2]?`<sup>${m[2]}</sup>`:'');
+    const m=/^(.+?)(?:\/(\d))?$/.exec(tok.replace(/:[whqes]\.?/g,'').replace(/_/g,''));return pretty(m[1].replace(/([0-9])([whqes])/g,'$1<small>$2</small>')).replace(/ \+ /g,'+')+(m[2]?`<sup>${m[2]}</sup>`:'');
   }).join(' ')).join('<br>');
 }
 
@@ -690,7 +694,7 @@ const sensToDb=v=>24-2*v;
 function resolveView(world){return settings.view==='auto'?(world!=null&&world>=2?'staff':'both'):settings.view;}
 function pieceView(text,view,bpb,ex={}){
   const p=parseSong(text);let h='';
-  if(view!=='names'&&p.notes.length)h+=`<div class="staffwrap">${scoreSVG(p,{bpb,ts:ex.ts,key:ex.key})}</div>`;
+  if(view!=='names'&&p.notes.length)h+=`<div class="staffwrap">${scoreSVG(p,{bpb,ts:ex.ts,key:ex.key,staff:ex.one})}</div>`;
   if(view!=='staff')h+=`<div class="mono">${glance(text)}</div>`;
   return h;
 }
@@ -845,7 +849,7 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
     const showScore=(i)=>{if(view==='names'){$('stageScore').classList.add('hidden');return;}
       const per=2,sys=Math.floor(Math.floor(this.p.notes[i].beat/bpb+1e-9)/per),key=sys+':'+i;
       $('stageScore').classList.remove('hidden');
-      if(key!==this._sk){this._sk=key;$('stageScore').innerHTML=scoreSVG(this.p,{bpb,ts:this.opts.ts,key:this.opts.key,from:sys*per,to:sys*per+per,per,hl:i});}};
+      if(key!==this._sk){this._sk=key;$('stageScore').innerHTML=scoreSVG(this.p,{bpb,ts:this.opts.ts,key:this.opts.key,staff:this.opts.staff,from:sys*per,to:sys*per+per,per,hl:i});}};
     const inCount=cpos<cin;
     if(inCount){
       showScore(0);
@@ -928,7 +932,7 @@ const song={running:false,events:[],streak:0,streakKey:'',opts:null,
     const colors={};g.res.forEach((r,i)=>{colors[i]=r.status!=='hit'?'#d8434f':(r.timing==='perfect'||r.timing==='good')?'#2e9e62':'#d68a1f';});
     const showRes=(this.opts.view||'both')!=='names';
     $('resScore').classList.toggle('hidden',!showRes);
-    if(showRes)$('resScore').innerHTML=scoreSVG(this.p,{bpb:this.bpb,ts:this.opts.ts,key:this.opts.key,colors});
+    if(showRes)$('resScore').innerHTML=scoreSVG(this.p,{bpb:this.bpb,ts:this.opts.ts,key:this.opts.key,staff:this.opts.staff,colors});
     $('chips').innerHTML=g.res.map(r=>{
       let cls='bad',top='✗',bot='';
       if(r.status==='miss'){top='—';bot='missed';}
@@ -1412,7 +1416,7 @@ function mergeHands(rh,lh,bpb=4){
   times.forEach((t,i)=>{
     const ps=ev[t.toFixed(4)].sort((a,b)=>b.r-a.r),step=(i+1<times.length?times[i+1]:total)-t,parts=splitDur(step);
     const f=(ps.find(p=>p.f)||{}).f;
-    push(t,ps.map(p=>p.name+':'+dcode(p.dur)).join('+')+parts[0]+(f?'/'+f:''));
+    push(t,ps.map(p=>(p.r?'':'_')+p.name+':'+dcode(p.dur)).join('+')+parts[0]+(f?'/'+f:''));
     if(parts.length>1){let b=t+DUR[parts[0][0]]*(parts[0][1]?1.5:1);parts.slice(1).forEach(c=>{push(b,'R'+c);b+=DUR[c[0]]*(c[1]?1.5:1);});}
   });
   return toks.join(' ').replace(/^\| /,'');
@@ -1508,6 +1512,81 @@ WORLDS.push(
    {t:'song',title:'Inversions · RH',text:T.invRH,bpm:60,need:1},
    {t:'song',title:'Inversions · LH',text:T.invLH,bpm:60,need:1},
    {t:'song',title:'Greensleeves',text:T.greenHT,bpm:75,need:3,...G68}
+  ]}}
+);
+Object.assign(T,{
+  minA_R:"D5q G4e A4e B4e C5e | D5q G4q G4q | E5q C5e D5e E5e F#5e | G5q G4q G4q | C5q D5e C5e B4e A4e | B4q C5e B4e A4e G4e | F#4q G4e A4e B4e G4e | A4h. | D5q G4e A4e B4e C5e | D5q G4q G4q | E5q C5e D5e E5e F#5e | G5q G4q G4q | C5q D5e C5e B4e A4e | B4q C5e B4e A4e G4e | A4q B4e A4e G4e F#4e | G4h.",minA_L:"G3+B3+D4h A3q | B3h. | C4h. | B3h. | A3h. | G3h. | D4q B3q G3q | D4q D3e C4e B3e A3e | B3h A3q | G3q B3q G3q | C4h. | B3q C4e B3e A3e G3e | A3h F#3q | G3h B3q | C4q D4q D3q | G3h G2q",minB_R:"B5q G5e A5e B5e G5e | A5q D5e E5e F#5e D5e | G5q E5e F#5e G5e D5e | C#5q B4e C#5e A4q | A4e B4e C#5e D5e E5e F#5e | G5q F#5q E5q | F#5q A4q C#5q | D5h. | D5q G4e F#4e G4q | E5q G4e F#4e G4q | D5q C5q B4q | A4e G4e F#4e G4e A4q | D4e E4e F#4e G4e A4e B4e | C5q B4q A4q | B4e D5e G4q F#4q | G4h.",minB_L:"G3h. | F#3h. | E3q G3q E3q | A3h A2q | A3h. | B3q D4q C#4q | D4q F#3q A3q | D4q D3q C4q | B3h B3q | C4h C4q | B3q A3q G3q | D3h Rq | D3h. | E3q G3q F#3q | G3q B2q D3q | G3q D3q G2q",
+  melR:"E5q D5q C5q B4q A4e C5e B4e D5e C5q G4q G5q F5q E5q C5q B4q F#4+A4q G4q Rq E5q D5q C5q B4q A4e C5e B4e D5e C5q G4q G5q F5q E5q C5q B4q F#4+A4q G4q Rq D5q C5q B4q Rq F5q E5q D5q Rq A5q G5q F5q E5q D5e F5e E5e G5e F5:q.+A4e C5e B4e D5e C5+E5q D5q C5q B4q A4e C5e B4e D5e C5q G4q A5q G5q B4+F5q C5+E5q D5e F5e B4e D5e C5q Rq D5q C5q B4q Rq F5q E5q D5q Rq A5q G5q F5q E5q D5e F5e E5e G5e F5:q.+A4e C5e B4e D5e C5+E5q D5q C5q B4q A4e C5e B4e D5e C5q G4q A5q G5q B4+F5q C5+E5q D5e F5e B4e D5e C5q Rq",melL:"C4e G4e F4e G4e E4e G4e C4e E4e F4e D4e G4e F4e E4e F4e E4e D4e E4e G4e D4e G4e C4e G4e E4e G4e D4e G4e C4e D4e B3e D4e G3q C4e G4e F4e G4e E4e G4e C4e E4e F4e D4e G4e F4e E4e F4e E4e D4e E4e G4e D4e G4e C4e G4e E4e G4e D4e G4e C4e D4e B3e D4e G3q F4e G4e E4e G4e D4e G4e F#4e G4e D4e G4e C4e G4e B3e G4e F#4e G4e F4e G4e E4e G4e D4e G4e C4e G4e B3e G4e C4e C#4e D4q G4q C4e G4e F4e G4e E4e G4e C4e E4e F4e D4e G4e F4e E4e F4e E4e C4e F4e C5e E4e C5e D4e G4e C4e G4e F4e A4e G4e F4e E4e G4e C4e E4e F4e G4e E4e G4e D4e G4e F#4e G4e D4e G4e C4e G4e B3e G4e F#4e G4e F4e G4e E4e G4e D4e G4e C4e G4e B3e G4e C4e C#4e D4q G4q C4e G4e F4e G4e E4e G4e C4e E4e F4e D4e G4e F4e E4e F4e E4e C4e F4e C5e E4e C5e D4e G4e C4e G4e F4e A4e G4e F4e E4e G4e C4q"
+});
+const scale2=(list,fu)=>{const up=list.split(' '),fd=fu.slice().reverse(),dn=up.slice(0,-1).reverse(),f=[...fu,...fd.slice(1)];
+  const all=[...up,...dn];return all.map((n,i)=>n+(i===all.length-1?'w':'')+'/'+f[i]+((i%4===3&&i<all.length-1)?' |':'')).join(' ');};
+const F_R=[1,2,3,1,2,3,4,1,2,3,1,2,3,4,5],F_L=[5,4,3,2,1,3,2,1,4,3,2,1,3,2,1],F_FR=[1,2,3,4,1,2,3,1,2,3,4,1,2,3,4];
+Object.assign(T,{
+  c2R:scale2('C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 F5 G5 A5 B5 C6',F_R),c2L:scale2('C2 D2 E2 F2 G2 A2 B2 C3 D3 E3 F3 G3 A3 B3 C4',F_L),
+  g2R:scale2('G3 A3 B3 C4 D4 E4 F#4 G4 A4 B4 C5 D5 E5 F#5 G5',F_R),g2L:scale2('G2 A2 B2 C3 D3 E3 F#3 G3 A3 B3 C4 D4 E4 F#4 G4',F_L),
+  d2R:scale2('D4 E4 F#4 G4 A4 B4 C#5 D5 E5 F#5 G5 A5 B5 C#6 D6',F_R),d2L:scale2('D2 E2 F#2 G2 A2 B2 C#3 D3 E3 F#3 G3 A3 B3 C#4 D4',F_L),
+  f2R:scale2('F4 G4 A4 Bb4 C5 D5 E5 F5 G5 A5 Bb5 C6 D6 E6 F6',F_FR),f2L:scale2('F2 G2 A2 Bb2 C3 D3 E3 F3 G3 A3 Bb3 C4 D4 E4 F4',F_L),
+  a2R:scale2('A3 B3 C4 D4 E4 F4 G#4 A4 B4 C5 D5 E5 F5 G#5 A5',F_R),a2L:scale2('A2 B2 C3 D3 E3 F3 G#3 A3 B3 C4 D4 E4 F4 G#4 A4',F_L),
+  arpR:'C4/1 E4/2 G4/3 C5/5 | G4/3 E4/2 C4h/1 | G4/1 B4/2 D5/3 G5/5 | D5/3 B4/2 G4h/1 | F4/1 A4/2 C5/3 F5/5 | C5/3 A4/2 F4h/1 | A4/1 C5/2 E5/3 A5/5 | E5/3 C5/2 A4h/1',
+  arpL:'C3/5 E3/4 G3/2 C4/1 | G3/2 E3/4 C3h/5 | G2/5 B2/4 D3/2 G3/1 | D3/2 B2/4 G2h/5 | F2/5 A2/4 C3/2 F3/1 | C3/2 A2/4 F2h/5 | A2/5 C3/4 E3/2 A3/1 | E3/2 C3/4 A2h/5'
+});
+T.minA=mergeHands(T.minA_R,T.minA_L,3);T.minB=mergeHands(T.minB_R,T.minB_L,3);
+T.minuet=mergeHands(T.minA_R+' | '+T.minB_R,T.minA_L+' | '+T.minB_L,3);
+T.melHT=mergeHands(T.melR,T.melL,4);T.melR=mergeHands(T.melR,'',4);T.melL=mergeHands('',T.melL,4);
+const MG={bpb:3,key:'G'},ML={one:'T'};
+WORLDS.push(
+ {id:6,name:'Classic Castle',sub:'real scores: Schumann, the Minuet in G, 2-octave scales',quests:[
+  {id:'6.1',title:'Reading real scores',xp:50,steps:[
+   {t:'read',title:'Into the library',html:`<p>From here on you play real pieces. Free, public-domain editions are on <b>IMSLP</b> (imslp.org) — look up the pieces in this world there and compare.</p><p><b>Repeat signs</b> (a double bar with two dots) send you back to the matching sign or the start. <b>1st / 2nd endings</b>: the first time play ending 1 and repeat; the second time skip it and take ending 2.</p><p>Ignore ornaments (little squiggles like trills and mordents) for now. <b>Fingering</b> numbers in editions are advice — follow them until you have a reason not to.</p><p>In this app pieces are written out once, without repeats.</p>`},
+   {t:'quiz',title:'Read the map',kind:'mc',pass:4,items:[
+     {q:'A repeat sign at the end of bar 8 (no earlier sign). You…',opts:['Go back to bar 1, play to bar 8 again','Stop','Go back one bar','Skip to the end'],a:'Go back to bar 1, play to bar 8 again'},
+     {q:'2nd ending: when do you play it?',opts:['After the repeat, skipping ending 1','First time through','Both times','Never'],a:'After the repeat, skipping ending 1'},
+     {q:'A mordent squiggle, beginner plan:',opts:['Play the plain note for now','Skip the bar','Play it twice as loud','Hold it longer'],a:'Play the plain note for now'},
+     {q:'Where to get free public-domain scores?',opts:['IMSLP','Only paid apps','Radio','Nowhere'],a:'IMSLP'}]}
+  ]},
+  {id:'6.2',title:'Schumann: Melodie',xp:50,steps:[
+   {t:'read',title:'Melodie, Op. 68 No. 1',html:`<p>From Schumann's <i>Album for the Young</i> (1848). Both hands are written in the treble clef — the LH plays just below the RH, in steady eighths (stems down).</p><p>The RH sings the tune <b>legato</b>; the LH accompanies, softer. Learn each hand alone first, then together, slowly. Bars 1–4 are played twice.</p><p>Fingering isn't printed here — check an IMSLP edition, or ask your chat teacher.</p>`},
+   {t:'song',title:'Right hand',text:T.melR,bpm:66,need:2},
+   {t:'song',title:'Left hand',text:T.melL,bpm:66,need:2,...ML},
+   {t:'song',title:'Hands together, slow',text:T.melHT,bpm:56,need:1,...ML},
+   {t:'song',title:'Hands together',text:T.melHT,bpm:72,need:2,...ML}
+  ]},
+  {id:'6.3',title:'Minuet in G · part A',xp:50,steps:[
+   {t:'read',title:'Minuet in G, BWV Anh. 114',html:`<p>From the notebook Bach gave his wife Anna Magdalena (1725); it's now credited to Christian Petzold. A <b>minuet</b> is a dance in 3/4.</p><p>Key signature: one sharp — every F is F♯. The RH dances in quarters and eighths; the LH walks below it. Part A is bars 1–16.</p><p>Eighths even and light, quarters slightly detached — it's a dance. Fingering: see an IMSLP edition or ask your chat teacher.</p>`},
+   {t:'song',title:'Part A · RH',text:T.minA_R,bpm:72,need:2,...MG},
+   {t:'song',title:'Part A · LH',text:T.minA_L,bpm:72,need:2,...MG},
+   {t:'song',title:'Part A · hands together, slow',text:T.minA,bpm:60,need:1,...MG},
+   {t:'song',title:'Part A · hands together',text:T.minA,bpm:76,need:2,...MG}
+  ]},
+  {id:'6.4',title:'Minuet in G · part B',xp:50,steps:[
+   {t:'read',title:'Part B',html:`<p>Bars 17–32 travel to D major (watch the <b>C♯</b>s) and come home to G. In a few bars the LH holds while the RH moves — keep counting.</p>`},
+   {t:'song',title:'Part B · RH',text:T.minB_R,bpm:72,need:2,...MG},
+   {t:'song',title:'Part B · LH',text:T.minB_L,bpm:72,need:2,...MG},
+   {t:'song',title:'Part B · hands together',text:T.minB,bpm:72,need:2,...MG},
+   {t:'song',title:'The whole minuet',text:T.minuet,bpm:84,need:1,...MG}
+  ]},
+  {id:'6.5',title:'Two-octave scales',xp:50,steps:[
+   {t:'read',title:'Longer runs',html:`<p>Two octaves means the thumb crosses twice each way. RH C, G, D and A minor: <b>1 2 3, 1 2 3 4, 1 2 3, 1 2 3 4 5</b>. LH: <b>5 4 3 2 1, 3 2 1, 4 3 2 1, 3 2 1</b>.</p><p>F major RH is the odd one: <b>1 2 3 4, 1 2 3, 1 2 3 4, 1 2 3 4</b>.</p><p>Hands separately, steady quarters. The arm glides sideways; the thumb starts moving before it's needed.</p>`},
+   {t:'song',title:'C major · RH',text:T.c2R,bpm:72,need:2},
+   {t:'song',title:'C major · LH',text:T.c2L,bpm:72,need:2},
+   {t:'song',title:'G major · RH',text:T.g2R,bpm:72,need:1,key:'G'},
+   {t:'song',title:'G major · LH',text:T.g2L,bpm:72,need:1,key:'G'},
+   {t:'song',title:'D major · RH',text:T.d2R,bpm:72,need:1,key:'D'},
+   {t:'song',title:'D major · LH',text:T.d2L,bpm:72,need:1,key:'D'},
+   {t:'song',title:'F major · RH',text:T.f2R,bpm:72,need:1,key:'F'},
+   {t:'song',title:'F major · LH',text:T.f2L,bpm:72,need:1,key:'F'},
+   {t:'song',title:'A harmonic minor · RH',text:T.a2R,bpm:72,need:1},
+   {t:'song',title:'A harmonic minor · LH',text:T.a2L,bpm:72,need:1}
+  ]},
+  {id:'6.6',title:'Arpeggios',xp:50,steps:[
+   {t:'read',title:'Chords in motion',html:`<p>An <b>arpeggio</b> plays a chord's notes up and down, adding the top root. One octave: RH <b>1 2 3 5</b>, LH <b>5 4 2 1</b>.</p><p>The hand opens wide — keep the wrist loose and let it travel with the notes; don't reach with stiff fingers.</p>`,kb:{from:'C4',to:'C5',marks:{C4:'1',E4:'2',G4:'3',C5:'5'}}},
+   {t:'song',title:'C, G, F, Am · RH',text:T.arpR,bpm:72,need:2},
+   {t:'song',title:'C, G, F, Am · LH',text:T.arpL,bpm:72,need:2}
+  ]}],
+  boss:{id:'B6',title:'The Castle Lord',xp:200,boss:true,steps:[
+   {t:'read',title:'👹 The Castle Lord',html:`<p>He only respects real repertoire. Schumann's Melodie, polished — then the whole Minuet at dance tempo, three times clean.</p>`},
+   {t:'song',title:'Melodie',text:T.melHT,bpm:80,need:1,...ML},
+   {t:'song',title:'Minuet in G',text:T.minuet,bpm:96,need:3,...MG}
   ]}}
 );
 const ALL_WORLD_NAMES=['Tutorial Island','Middle C Meadows','Grand Staff Grove','Rhythm Rapids','Scale Summit','Harmony Harbor','Classic Castle','Expression Peaks'];
@@ -1665,7 +1744,7 @@ const STEPS={
     ui.host.appendChild(btn);ui.host.appendChild(wrap);
     wrap.appendChild(PERF);$('songStage').classList.add('hidden');$('songResult').classList.add('hidden');
     song.streakKey='';
-    const opts={text:s.text,bpm:s.bpm,bpb:s.bpb,ts:s.ts,key:s.key,clk:s.clk,need:s.need,strict:s.strict,name:(L.q.boss?'Boss ':'Quest '+L.q.id+' ')+s.title,key:'L-'+L.q.id+'-'+L.i+'-'+Date.now(),click:settings.click,
+    const opts={text:s.text,bpm:s.bpm,bpb:s.bpb,ts:s.ts,key:s.key,clk:s.clk,staff:s.one,need:s.need,strict:s.strict,name:(L.q.boss?'Boss ':'Quest '+L.q.id+' ')+s.title,key:'L-'+L.q.id+'-'+L.i+'-'+Date.now(),click:settings.click,
       onError:m=>ui.msg(m,false),
       // while playing, fold the full piece away so the live staff sits at the top of the phone screen
       onStart:()=>{btn.classList.add('hidden');[seg,box,info].forEach(e=>e.classList.add('hidden'));$('stepTitle').scrollIntoView({block:'start'});},

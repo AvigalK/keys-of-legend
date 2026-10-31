@@ -617,6 +617,7 @@ function scoreSVG(p,o={}){
       if(!inSys(r.beat))return;const st=mode==='B'?'B':'T',x=xAt(r.beat),mid=st==='T'?yT(6):yB(-6),dk=durKind(r.dur);
       if(dk.base==='w')out+=`<rect class="rest" data-k="w" x="${x-5}" y="${mid-s}" width="10" height="4" fill="${INK}"/>`;
       else if(dk.base==='h')out+=`<rect class="rest" data-k="h" x="${x-5}" y="${mid-4}" width="10" height="4" fill="${INK}"/>`;
+      else if(dk.base==='e'||dk.base==='s')out+=`<g class="rest" data-k="${dk.base}"><circle cx="${x-2}" cy="${mid-3}" r="2.2" fill="${INK}"/><path d="M${x-2} ${mid-2} q3 1 5 -2 l-4 11" fill="none" stroke="${INK}" stroke-width="1.4"/>${dk.base==='s'?`<circle cx="${x-3.5}" cy="${mid+2}" r="2.2" fill="${INK}"/>`:''}</g>`;
       else out+=`<path class="rest" data-k="q" d="M${x-2} ${mid-11} l5 6 l-4 4 l5 6 c-4 -2 -7 1 -3 5 c-6 -3 -5 -8 1 -6 l-5 -5 l4 -4 z" fill="${INK}"/>`;
       if(dk.dot)out+=`<circle cx="${x+8}" cy="${mid-s/2}" r="1.5" fill="${INK}"/>`;
     });
@@ -1393,6 +1394,120 @@ WORLDS.push(
    {t:'song',title:'G major HT',text:T.gHT,bpm:60,need:1,key:'G'},
    {t:'song',title:'F major HT',text:T.fHT,bpm:60,need:1,key:'F'},
    {t:'song',title:'Amazing Grace',text:T.graceHT,bpm:80,bpb:3,need:3}
+  ]}}
+);
+// merge an independent right-hand and left-hand part into one playable line (one event per onset)
+const DCODE=[[6,'w.'],[4,'w'],[3,'h.'],[2,'h'],[1.5,'q.'],[1,'q'],[0.75,'e.'],[0.5,'e'],[0.375,'s.'],[0.25,'s']];
+function dcode(x){for(const [v,c] of DCODE)if(Math.abs(x-v)<1e-6)return c;return null;}
+function splitDur(x){const out=[];let r=x;while(r>1e-6){const p=DCODE.find(([v])=>v<=r+1e-6);if(!p)throw new Error('bad gap '+x);out.push(p[1]);r-=p[0];}return out;}
+function mergeHands(rh,lh,bpb=4){
+  const A=parseSong(rh),B=parseSong(lh),ev={};
+  const add=(n,pt,isR)=>{const k=n.beat.toFixed(4);(ev[k]=ev[k]||[]).push({name:pt.name,dur:pt.dur,f:isR?n.finger:null,r:isR});};
+  A.notes.forEach(n=>n.parts.forEach(pt=>add(n,pt,true)));B.notes.forEach(n=>n.parts.forEach(pt=>add(n,pt,false)));
+  const times=Object.keys(ev).map(Number).sort((a,b)=>a-b),total=Math.max(A.totalBeats,B.totalBeats);
+  const toks=[];let pos=0;
+  const push=(beat,tok)=>{if(beat>0&&Math.abs(beat/bpb-Math.round(beat/bpb))<1e-6)toks.push('|');toks.push(tok);};
+  const rests=(from,len)=>{let b=from;splitDur(len).forEach(c=>{push(b,'R'+c);b+=DUR[c[0]]*(c[1]?1.5:1);});};
+  if(times[0]>1e-6)rests(0,times[0]);
+  times.forEach((t,i)=>{
+    const ps=ev[t.toFixed(4)].sort((a,b)=>b.r-a.r),step=(i+1<times.length?times[i+1]:total)-t,parts=splitDur(step);
+    const f=(ps.find(p=>p.f)||{}).f;
+    push(t,ps.map(p=>p.name+':'+dcode(p.dur)).join('+')+parts[0]+(f?'/'+f:''));
+    if(parts.length>1){let b=t+DUR[parts[0][0]]*(parts[0][1]?1.5:1);parts.slice(1).forEach(c=>{push(b,'R'+c);b+=DUR[c[0]]*(c[1]?1.5:1);});}
+  });
+  return toks.join(' ').replace(/^\| /,'');
+}
+const chordLine=(list,dur='h',f=1)=>list.map((c,i)=>c+dur+'/'+f+((i%2===1&&i<list.length-1)?' |':'')).join(' ');
+Object.assign(T,{
+  voiceRH:'C5+E5+G5h/1 C5+F5+A5h/1 | C5+E5+G5h/1 B4+D5+G5h/1 | C5+E5+G5w/1',
+  voiceLH:'C3+E3+G3h/5 C3+F3+A3h/5 | C3+E3+G3h/5 B2+D3+G3h/5 | C3+E3+G3w/5',
+  invRH:chordLine(['C4+E4+G4','E4+G4+C5','G4+C5+E5','F4+A4+C5','A4+C5+F5','C5+F5+A5','G4+B4+D5','B4+D5+G5','D5+G5+B5','A4+C5+E5','C5+E5+A5','E5+A5+C6']),
+  invLH:chordLine(['C2+E2+G2','E2+G2+C3','G2+C3+E3','F2+A2+C3','A2+C3+F3','C3+F3+A3','G2+B2+D3','B2+D3+G3','D3+G3+B3','A2+C3+E3','C3+E3+A3','E2+A2+C3'],'h',5),
+  alberti:'C3e/5 G3e/1 E3e/3 G3e/1 C3e/5 G3e/1 E3e/3 G3e/1 | C3e/5 A3e/1 F3e/3 A3e/1 C3e/5 A3e/1 F3e/3 A3e/1 | B2e/5 G3e/1 D3e/3 G3e/1 B2e/5 G3e/1 D3e/3 G3e/1 | C3e/5 G3e/1 E3e/3 G3e/1 C3h/5',
+  brokenRH:'C4e/1 E4e/3 G4e/5 E4e/3 C4e/1 E4e/3 G4/5 | C4e/1 F4e/3 A4e/5 F4e/3 C4e/1 F4e/3 A4/5 | B3e/1 D4e/2 G4e/5 D4e/2 B3e/1 D4e/2 G4/5 | C4e/1 E4e/3 G4e/5 E4e/3 C4h/1',
+  amN:'A4/1 B4/2 C5/3 D5/1 | E5/2 F5/3 G5/4 A5/5 | G5/4 F5/3 E5/2 D5/1 | C5/3 B4/2 A4h/1',
+  amH:'A4/1 B4/2 C5/3 D5/1 | E5/2 F5/3 G#5/4 A5/5 | G#5/4 F5/3 E5/2 D5/1 | C5/3 B4/2 A4h/1',
+  dmH:'D4/1 E4/2 F4/3 G4/1 | A4/2 Bb4/3 C#5/4 D5/5 | C#5/4 Bb4/3 A4/2 G4/1 | F4/3 E4/2 D4h/1',
+  emH:'E4/1 F#4/2 G4/3 A4/1 | B4/2 C5/3 D#5/4 E5/5 | D#5/4 C5/3 B4/2 A4/1 | G4/3 F#4/2 E4h/1',
+  six8:'C4/1 D4e/2 E4/3 F4e/4 | G4q./5 E4q./3 | F4/4 E4e/3 D4/2 E4e/3 | C4h./1',
+  phrase:'C4/1 D4/2 E4/3 F4/4 | G4/5 A4/5 G4/5 F4/4 | E4/3 F4/4 E4/3 D4/2 | C4w/1',
+  green:'Rh Re A4e/1 | C5/2 D5e/3 E5e./4 F5s/5 E5e/4 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5/4 A4e/2 A4e./2 G#4s/1 A4e/2 | B4/3 G#4e/2 E4/1 A4e/1 | C5/2 D5e/3 E5e./4 F5s/5 E5e/4 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5e./5 B4s/4 A4e/3 G#4e./2 F#4s/1 G#4e/2 | A4h./3 | G5q./3 G5e./3 F#5s/2 E5e/1 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5/4 A4e/2 A4e./2 G#4s/1 A4e/2 | B4/3 G#4e/2 E4q./1 | G5q./3 G5e./3 F#5s/2 E5e/1 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5e./5 B4s/4 A4e/3 G#4e./2 F#4s/1 G#4e/2 | A4h./3',
+  greenLH:'Rh. | A2q. E3q. | G2q. D3q. | A2q. E3q. | E2q. B2q. | A2q. E3q. | G2q. D3q. | A2q. E2q. | A2h. | C3q. G3q. | G2q. D3q. | A2q. E3q. | E2q. B2q. | C3q. G3q. | G2q. D3q. | A2q. E2q. | A2h.'
+});
+T.greenHT=mergeHands(T.green,T.greenLH,3);
+const G68={bpb:3,ts:'6/8',clk:1.5};
+WORLDS.push(
+ {id:5,name:'Harmony Harbor',sub:'inversions, broken chords, minor keys, 6/8, phrasing',quests:[
+  {id:'5.1',title:'Chord inversions',xp:50,steps:[
+   {t:'read',title:'Same chord, new shape',html:`<p>Move the bottom note of a chord to the top and you get an <b>inversion</b>. C E G (root position) → <b>E G C</b> (1st inversion) → <b>G C E</b> (2nd inversion). Still a C chord.</p><p>Why? <b>Voice leading</b>: chords can sit close together so the hand barely moves. C → F/C → G/B: C E G → C F A → B D G.</p><p>RH fingering: root 1 3 5, 1st inversion <b>1 2 5</b>, 2nd inversion <b>1 3 5</b>.</p>`,staff:['C4','E4','G4','E4','G4','C5']},
+   {t:'quiz',title:'Which inversion?',kind:'mc',pass:4,items:[
+     {q:'E G C is…',opts:['C, 1st inversion','C, root position','C, 2nd inversion','E minor'],a:'C, 1st inversion'},
+     {q:'G C E is…',opts:['C, 2nd inversion','C, 1st inversion','G major','C, root position'],a:'C, 2nd inversion'},
+     {q:'A C F is…',opts:['F, 1st inversion','A minor','F, 2nd inversion','F, root position'],a:'F, 1st inversion'},
+     {q:'Root-position G triad',opts:['G B D','B D G','D G B','G C E'],a:'G B D'},
+     {q:'C to F/C: which note stays put?',opts:['C','E','G','F'],a:'C'}]},
+   {t:'song',title:'Voice leading · RH',html:`<p>C – F/C – C – G/B – C. Keep the hand still; only the fingers that must move, move.</p>`,text:T.voiceRH,bpm:60,need:2},
+   {t:'song',title:'Voice leading · LH',text:T.voiceLH,bpm:60,need:2},
+   {t:'song',title:'All inversions · RH',html:`<p>C, F, G, Am — root, 1st, 2nd inversion each.</p>`,text:T.invRH,bpm:60,need:1},
+   {t:'song',title:'All inversions · LH',text:T.invLH,bpm:60,need:1,achOnDone:'shape'}
+  ]},
+  {id:'5.2',title:'Broken chords & Alberti bass',xp:50,steps:[
+   {t:'read',title:'Spread the chord out',html:`<p>A <b>broken chord</b> plays the chord's notes one after another.</p><p><b>Alberti bass</b> is the classic pattern <b>low – high – middle – high</b> (C G E G), named after a composer who used it constantly. Mozart and Clementi too.</p><p>The secret is <b>wrist rotation</b>: rock the hand like turning a door knob, a little each way. The fingers barely lift. If your forearm tightens, slow down.</p>`,kb:{from:'C3',to:'B3',marks:{C3:'5',E3:'3',G3:'1'}}},
+   {t:'song',title:'Broken chords · RH',text:T.brokenRH,bpm:66,need:2},
+   {t:'song',title:'Alberti bass · LH',html:`<p>C – F/C – G/B – C. Rotate, don't lift.</p>`,text:T.alberti,bpm:60,need:2},
+   {t:'check',title:'Rotation check',items:['The wrist rocks gently side to side','The fingers stay close to the keys','The bottom note is not louder than the others']}
+  ]},
+  {id:'5.3',title:'Minor keys',xp:50,steps:[
+   {t:'read',title:'The darker side',html:`<p>Every major key has a <b>relative minor</b> that shares its key signature, starting on the 6th note. C major ↔ <b>A minor</b>. F major ↔ D minor. G major ↔ E minor.</p><p><b>Natural minor</b>: A B C D E F G A — all white keys. <b>Harmonic minor</b> raises the 7th: <b>G♯</b>. That leading note pulls hard back to A.</p><p>Minor triad: the middle note is a half step lower than in major. A C♯ E (major) → <b>A C E</b> (minor).</p>`},
+   {t:'quiz',title:'Hear it',kind:'ear',n:8,pass:6},
+   {t:'quiz',title:'Know it',kind:'mc',pass:3,items:[
+     {q:'Relative minor of C major',opts:['A minor','C minor','E minor','D minor'],a:'A minor'},
+     {q:'A harmonic minor raises…',opts:['G to G♯','F to F♯','C to C♯','Nothing'],a:'G to G♯'},
+     {q:'Relative minor of F major',opts:['D minor','A minor','F minor','E minor'],a:'D minor'},
+     {q:'D minor key signature',opts:['1 flat (B♭)','1 sharp (F♯)','No sharps or flats','2 flats'],a:'1 flat (B♭)'}]},
+   {t:'song',title:'A natural minor · RH',text:T.amN,bpm:66,need:2},
+   {t:'song',title:'A harmonic minor · RH',text:T.amH,bpm:66,need:2},
+   {t:'song',title:'D harmonic minor · RH',text:T.dmH,bpm:60,need:1,key:'Dm'},
+   {t:'song',title:'E harmonic minor · RH',text:T.emH,bpm:60,need:1,key:'Em'}
+  ]},
+  {id:'5.4',title:'6/8 time',xp:50,steps:[
+   {t:'read',title:'Two big beats',html:`<p><b>6/8</b> has 6 eighth notes per bar, grouped in two threes: <b>1</b>-2-3 <b>4</b>-5-6. It feels like <b>two big beats</b>, each a dotted quarter — a lilting, rocking feel.</p><p>The click here sounds on the two big beats. Count “1-2-3 4-5-6” quietly, accent 1 and 4.</p>`},
+   {t:'quiz',title:'Count it',kind:'mc',pass:3,items:[
+     {q:'Eighth notes in a 6/8 bar',opts:['6','3','8','4'],a:'6'},
+     {q:'6/8 feels like…',opts:['Two big beats','Six equal accents','Three beats','Four beats'],a:'Two big beats'},
+     {q:'One big beat in 6/8 is a…',opts:['Dotted quarter','Quarter','Half','Eighth'],a:'Dotted quarter'},
+     {q:'Quarter + eighth in 6/8 lasts…',opts:['3 eighths','2 eighths','4 eighths','6 eighths'],a:'3 eighths'}]},
+   {t:'song',title:'Rocking in 6/8',text:T.six8,bpm:72,need:2,...G68}
+  ]},
+  {id:'5.5',title:'Phrasing & shape',xp:50,steps:[
+   {t:'read',title:'Make it speak',html:`<p>A <b>phrase</b> is a musical sentence, usually 2–4 bars, marked by a slur. Lift your hand slightly at the end of it, like taking a breath.</p><p><b>Crescendo</b> (<i>cresc.</i>, &lt;) = gradually louder. <b>Diminuendo</b> (<i>dim.</i>, &gt;) = gradually softer. <b>Ritardando</b> (<i>rit.</i>) = gradually slower — the app keeps strict time, so practise rit. without the click.</p><p>Shape: grow toward the highest note, relax away from it.</p>`},
+   {t:'quiz',title:'Terms',kind:'mc',pass:3,items:[
+     {q:'Crescendo means…',opts:['Gradually louder','Gradually softer','Gradually slower','Suddenly loud'],a:'Gradually louder'},
+     {q:'Ritardando means…',opts:['Gradually slower','Gradually faster','Softer','Detached'],a:'Gradually slower'},
+     {q:'&gt; under a phrase (a long hairpin) means…',opts:['Diminuendo','Crescendo','Staccato','Accent every note'],a:'Diminuendo'},
+     {q:'End of a phrase: you…',opts:['Lift gently, like a breath','Play the last note loudest','Speed up','Hold the pedal'],a:'Lift gently, like a breath'}]},
+   {t:'song',title:'Shape a phrase',html:`<p>Crescendo up to the A in bar 2, diminuendo back down to C. Keep strict time.</p>`,text:T.phrase,bpm:66,need:2},
+   {t:'dyn',title:'Soft to loud',seq:['C4','D4','E4','F4','G4'],fingers:[1,2,3,4,5],diff:6},
+   {t:'check',title:'Self-check',items:['The phrase clearly grew toward the top','It relaxed back down to the end','The last note was soft and the hand lifted gently']}
+  ]},
+  {id:'5.6',title:'Song: Greensleeves',xp:50,steps:[
+   {t:'read',title:'Greensleeves',html:`<p>An English tune from the 1500s, in <b>A minor</b> and <b>6/8</b>. It begins with a one-eighth pickup. The <b>G♯</b>s and <b>F♯</b> come from A minor's raised 6th and 7th notes.</p><p>The dotted eighth + sixteenth (<i>long-short</i>) gives it its lilt. Count “1-2-3 4-5-6” and place the sixteenth just before the next eighth.</p><p>LH: two notes per bar (root, then fifth) — a broken chord. Fingering is suggested; the hand shifts on longer notes.</p>`},
+   {t:'song',title:'Melody, slow',text:T.green,bpm:60,need:1,...G68},
+   {t:'song',title:'Melody',text:T.green,bpm:75,need:2,...G68},
+   {t:'song',title:'Hands together, slow',text:T.greenHT,bpm:60,need:1,...G68},
+   {t:'song',title:'Hands together',text:T.greenHT,bpm:75,need:2,...G68,achOnDone:'minor'}
+  ]},
+  {id:'5.7',title:'Compose!',xp:50,steps:[
+   {t:'read',title:'Your own 8 bars',html:`<p>Write a melody over <b>I – IV – V – I</b> twice (8 bars, 4/4, C major): bars 1–4 = C F G C, bars 5–8 = C F G C.</p><p>Rules of thumb: use mostly chord notes on beat 1 (C E G over C, F A C over F, G B D over G), move by step between them, and <b>end on C</b>.</p><p>Type it in the <b>Song</b> tab → Custom, in the app's note format (e.g. <code>E4/3 D4/2 C4h/1</code>). Add LH chords with <code>+</code>: <code>E4+C3:w/3</code>.</p>`},
+   {t:'check',title:'Composer checklist',items:['8 bars, each adding up to 4 beats','Beat 1 of each bar fits its chord','It ends on C','I played it 3 times clean in the Song tab']},
+   {t:'read',title:'Share it',html:`<p>Copy your melody into your teacher chat — it's worth showing off.</p>`,achOnDone:'composer'}
+  ]}],
+  boss:{id:'B5',title:'The Harbor Siren',xp:200,boss:true,steps:[
+   {t:'read',title:'👹 The Harbor Siren',html:`<p>She sings in minor keys and lures sailors off the beat. Name what you hear, shapeshift every chord, then sing her own song back to her.</p>`},
+   {t:'quiz',title:'Major or minor? 8 of 10',kind:'ear',n:10,pass:8},
+   {t:'song',title:'Inversions · RH',text:T.invRH,bpm:60,need:1},
+   {t:'song',title:'Inversions · LH',text:T.invLH,bpm:60,need:1},
+   {t:'song',title:'Greensleeves',text:T.greenHT,bpm:75,need:3,...G68}
   ]}}
 );
 const ALL_WORLD_NAMES=['Tutorial Island','Middle C Meadows','Grand Staff Grove','Rhythm Rapids','Scale Summit','Harmony Harbor','Classic Castle','Expression Peaks'];

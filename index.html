@@ -150,6 +150,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
     <div id="stepMsg" class="feedback"></div>
     <button class="btn big" id="stepNext" style="margin-top:10px">Next ›</button>
     <button class="btn link hidden" id="stepOverride">Mic trouble? Mark this step done</button>
+    <button class="btn link hidden" id="adminSkip">⏭ Skip step (admin)</button>
   </div>
   <div class="card hidden" id="lessonDone"></div>
 </section>
@@ -265,6 +266,10 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <input type="range" id="lat" min="0" max="400" step="5" value="120">
       <div class="help">Normally measured automatically from the count-in clicks. Only used if the mic can't hear the clicks (turn the phone volume up).</div>
     </div>
+  </div>
+  <div class="card">
+    <h3>Admin</h3>
+    <div class="toggle" style="border-top:0"><label for="adminOn">Admin mode: unlock all levels, skip steps. Nothing is saved while it's on (no XP, quests or achievements).</label><input type="checkbox" id="adminOn"></div>
   </div>
   <div class="card">
     <h3>Progress backup</h3>
@@ -658,7 +663,7 @@ const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('kol_'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
              set(k,v){try{localStorage.setItem('kol_'+k,JSON.stringify(v));}catch(e){}}};
 let ctx=null,engine=null,baseHist=[],ctxBase=0,wakeLock=null;
-const settings={view:store.get('view','auto'),solf:store.get('solf',true),strict:store.get('strict',false),sens:store.get('sens',6),lat:store.get('lat',120),click:store.get('click',true)};
+const settings={admin:store.get('admin',false),view:store.get('view','auto'),solf:store.get('solf',true),strict:store.get('strict',false),sens:store.get('sens',6),lat:store.get('lat',120),click:store.get('click',true)};
 const sensToDb=v=>24-2*v;
 // which notation to show: staff (sheet music), names (letters), or both
 function resolveView(world){return settings.view==='auto'?(world!=null&&world>=2?'staff':'both'):settings.view;}
@@ -1013,6 +1018,7 @@ function touchStreak(){
 }
 function levelOf(xp){let Lv=1;while(xp>=250*Lv*(Lv+1)/2)Lv++;return Lv;}
 function addXP(n,why){
+  if(settings.admin){if(n>0&&why)toast('Admin mode — no XP saved');return {levelUp:false,bonus:0};}
   const before=levelOf(P.xp);const bonus=touchStreak();P.xp+=n;saveP();
   const after=levelOf(P.xp);
   if(after>before)toast(`⬆️ Level ${after}!`);else if(n>0&&why)toast(`+${n} XP${bonus?` · 🔥 +${bonus} streak bonus`:''}`);
@@ -1022,7 +1028,7 @@ function logEvt(s){P.log.push(dayStr(new Date())+' '+s);if(P.log.length>40)P.log
 const ACH={first:'🌅 First Light — first quest done',metronome:'🎯 Metronome’s Friend — 3 clean runs in a row',boss:'👹 Boss Slayer — first boss defeated',
   twohands:'🙌 Two-Handed — first hands-together piece',reader:'📖 Staff Reader — 20/20 reading round',streak7:'🔥 Streak 7 — a week in a row',
   perfect:'🧘 Perfect Posture — boss form check passed'};
-function ach(id){if(P.ach.includes(id))return;P.ach.push(id);saveP();setTimeout(()=>toast('Achievement! '+ACH[id]),900);}
+function ach(id){if(settings.admin||P.ach.includes(id))return;P.ach.push(id);saveP();setTimeout(()=>toast('Achievement! '+ACH[id]),900);}
 const RANKS=['Key Finder','Apprentice of the Ivory','Melody Scout','Staff Ranger','Rhythm Rider','Scale Climber','Harmony Mage','Castle Virtuoso','Keys of Legend'];
 function rank(){let r=0;WORLDS.forEach((w,i)=>{if(P.done[w.boss.id])r=i+1;});return RANKS[r];}
 function renderHud(){
@@ -1180,12 +1186,12 @@ const LOCKED_WORLDS=['Rhythm Rapids','Scale Summit','Harmony Harbor','Classic Ca
 
 // ================== Map & lesson player ==================
 function allQ(){const a=[];WORLDS.forEach(w=>{w.quests.forEach(q=>a.push(q));a.push(w.boss);});return a;}
-function unlocked(q){const a=allQ();const i=a.indexOf(q);return i===0||!!P.done[a[i-1].id]||!!P.done[q.id];}
+function unlocked(q){if(settings.admin)return true;const a=allQ();const i=a.indexOf(q);return i===0||!!P.done[a[i-1].id]||!!P.done[q.id];}
 function renderMap(){
   renderHud();
   $('lesson').classList.add('hidden');$('lessonDone').classList.add('hidden');$('map').classList.remove('hidden');
   const cur=nextQuest();
-  let h='';
+  let h=settings.admin?`<div class="card" style="border:2px solid var(--warn)"><b style="color:var(--warn)">🛠 Admin mode</b><div class="sub">All levels unlocked · ⏭ skip any step · nothing is saved. Turn it off in ⚙︎.</div></div>`:'';
   WORLDS.forEach(w=>{
     const qs=[...w.quests,w.boss];const n=qs.filter(q=>P.done[q.id]).length;
     h+=`<div class="card world"><h3>World ${w.id} · ${w.name} <small>${n}/${qs.length}</small></h3><div class="sub">${w.sub}</div>`;
@@ -1212,6 +1218,7 @@ const L={q:null,i:0,okSteps:{},
     $('stepMsg').textContent='';$('stepMsg').className='feedback';
     $('stepNext').textContent=this.i===q.steps.length-1?'Finish ✓':'Next ›';
     $('stepOverride').classList.add('hidden');
+    $('adminSkip').classList.toggle('hidden',!settings.admin);
     let body=s.html||'';
     if(s.kb)body+=kbFromSpec(s.kb);
     if(s.staff)body+=staffFromSpec(s.staff,s.labels);
@@ -1226,6 +1233,16 @@ const L={q:null,i:0,okSteps:{},
   next(){if(!this.stepDone)return;task.active=false;if(song.running)song.stop();
     if(this.i<this.q.steps.length-1){this.i++;this.render();window.scrollTo(0,0);}else this.finish();},
   finish(){
+    if(settings.admin){ // preview only: record nothing
+      const q=this.q,a=allQ(),nq=a[a.indexOf(q)+1]||null;
+      parkPerf();$('lesson').classList.add('hidden');$('lessonDone').classList.remove('hidden');
+      $('lessonDone').innerHTML=`<div class="summary"><div class="big" style="color:var(--warn)">🛠 Preview finished</div>${q.boss?'Boss: ':'Quest '+q.id+' · '}${q.title} — not saved (admin mode)</div>
+        ${nq?`<button class="btn big" id="doneNext" style="margin-top:12px">Next: ${nq.boss?'Boss · ':nq.id+' '}${nq.title} ›</button>`:''}
+        <button class="btn" id="doneMap" style="width:100%;margin-top:8px">Map</button>`;
+      if(nq)$('doneNext').onclick=()=>L.open(nq);
+      $('doneMap').onclick=()=>{this.q=null;renderMap();};
+      this.q=null;return;
+    }
     const q=this.q,first=!P.done[q.id];
     const gain=first?q.xp:15;
     const hadAny=Object.keys(P.done).length>0;
@@ -1247,6 +1264,7 @@ const L={q:null,i:0,okSteps:{},
 };
 $('lessonBack').onclick=()=>L.close();
 $('stepNext').onclick=()=>L.next();
+$('adminSkip').onclick=()=>{if(!settings.admin)return;task.active=false;if(song.running)song.stop();L.setDone(true);L.next();};
 $('stepOverride').onclick=()=>{L.manual=(L.manual||0)+1;$('stepOverride').classList.add('hidden');task.active=false;L.setDone(true);};
 
 const STEPS={
@@ -1463,6 +1481,8 @@ $('startBtn').onclick=startMic;
 $('noMicBtn').onclick=startNoMic;
 $('micPill').onclick=()=>{if(micOn())stopMic();else startMic();};
 $('micToggle').onchange=()=>{if($('micToggle').checked)startMic();else if(micOn())stopMic();};
+$('adminOn').checked=settings.admin;
+$('adminOn').onchange=()=>{settings.admin=$('adminOn').checked;store.set('admin',settings.admin);toast(settings.admin?'🛠 Admin mode on — all levels unlocked, nothing saved':'Admin mode off');if(!L.q)renderMap();};
 $('viewSel').value=settings.view;$('viewSel').onchange=()=>{settings.view=$('viewSel').value;store.set('view',settings.view);drawSongPreview();};
 $('solfOn').checked=settings.solf;$('solfOn').onchange=()=>{settings.solf=$('solfOn').checked;store.set('solf',settings.solf);};
 $('strictOct').checked=settings.strict;$('strictOct').onchange=()=>{settings.strict=$('strictOct').checked;store.set('strict',settings.strict);};

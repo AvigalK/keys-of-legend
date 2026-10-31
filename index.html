@@ -310,7 +310,7 @@ function parseSong(text){
   const notes=[],rests=[],errors=[];let beat=0;
   for(const tok of String(text||'').replace(/\|/g,' ').split(/\s+/).filter(Boolean)){
     // note(+note)* ; a joined note may carry its own length after ':' (E4+C3:w = LH holds a whole note)
-    const m=/^((?:[A-Ga-g][#b]?-?\d)(?:\+[A-Ga-g][#b]?-?\d(?::[whqes]\.?)?)*|[Rr])([whqesWHQES]?)(\.?)(?:\/([1-5]))?$/.exec(tok);
+    const m=/^((?:[A-Ga-g][#b]?-?\d(?::[whqes]\.?)?)(?:\+[A-Ga-g][#b]?-?\d(?::[whqes]\.?)?)*|[Rr])([whqesWHQES]?)(\.?)(?:\/([1-5]))?$/.exec(tok);
     if(!m){errors.push(tok);continue;}
     const d=DUR[(m[2]||'q').toLowerCase()]*(m[3]?1.5:1);
     if(/^[Rr]$/.test(m[1])){rests.push({beat,dur:d});beat+=d;continue;}
@@ -322,6 +322,19 @@ function parseSong(text){
   return {notes,rests,totalBeats:beat,errors};
 }
 const rep=(tok,n)=>Array(n).fill(tok).join(' ');
+// add a left-hand chord (held for the whole bar) to the first event of each bar. chords: per bar, e.g. 'C3+E3+G3', or null
+const BAR_CODE={2:'h',3:'h.',4:'w'};
+function addLH(text,chords,bpb=4){
+  return text.split('|').map((bar,i)=>{
+    const c=chords[i];if(!c)return bar.trim();
+    const toks=bar.trim().split(/\s+/),lh=c.split('+').map(x=>x+':'+BAR_CODE[bpb]).join('+');
+    const r=/^R([whqes]?\.?)$/.exec(toks[0]);
+    if(r)toks[0]=lh+(r[1]||'q');
+    else{const m=/^([A-G][#b]?\d)([whqes]?\.?)(\/\d)?$/.exec(toks[0]);toks[0]=m[1]+'+'+lh+(m[2]||'')+(m[3]||'');}
+    return toks.join(' ');
+  }).join(' | ');
+}
+const CH={C:'C3+E3+G3',F:'F2+A2+C3',G:'G2+B2+D3',Am:'A2+C3+E3',Dm:'D3+F3+A3',Em:'E2+G2+B2'};
 const T={
   rh5:'C4/1 D4/2 E4/3 F4/4 | G4/5 F4/4 E4/3 D4/2 | C4w/1',
   lh5:'C3/5 D3/4 E3/3 F3/2 | G3/1 F3/2 E3/3 D3/4 | C3w/5',
@@ -1052,7 +1065,8 @@ function addXP(n,why){
 function logEvt(s){P.log.push(dayStr(new Date())+' '+s);if(P.log.length>40)P.log.splice(0,P.log.length-40);saveP();}
 const ACH={first:'🌅 First Light — first quest done',metronome:'🎯 Metronome’s Friend — 3 clean runs in a row',boss:'👹 Boss Slayer — first boss defeated',
   twohands:'🙌 Two-Handed — first hands-together piece',reader:'📖 Staff Reader — 20/20 reading round',streak7:'🔥 Streak 7 — a week in a row',
-  perfect:'🧘 Perfect Posture — boss form check passed'};
+  perfect:'🧘 Perfect Posture — boss form check passed',scale:'🧗 Scale Runner — first scale hands together',shape:'🔄 Shapeshifter — all inversions, both hands',
+  minor:'🌘 Minor Key — first piece in a minor key',composer:'✍️ Composer — your own 8-bar melody',pedal:'🦶 Pedal Pusher — first pedalled piece',legend:'👑 Legend — every world conquered'};
 function ach(id){if(settings.admin||P.ach.includes(id))return;P.ach.push(id);saveP();setTimeout(()=>toast('Achievement! '+ACH[id]),900);}
 const RANKS=['Key Finder','Apprentice of the Ivory','Melody Scout','Staff Ranger','Rhythm Rider','Scale Climber','Harmony Mage','Castle Virtuoso','Keys of Legend'];
 function rank(){let r=0;WORLDS.forEach((w,i)=>{if(P.done[w.boss.id])r=i+1;});return RANKS[r];}
@@ -1286,6 +1300,99 @@ WORLDS.push(
    {t:'quiz',title:'Count 4 rhythms',kind:'mc',pass:4,items:RHY},
    {t:'song',title:'Eighths @ 80',text:T.eighths,bpm:80,need:1},
    {t:'song',title:'The Saints @ 90',text:T.saintsHT,bpm:90,need:3}
+  ]}}
+);
+Object.assign(T,{
+  cRH:'C4/1 D4/2 E4/3 F4/1 | G4/2 A4/3 B4/4 C5/5 | B4/4 A4/3 G4/2 F4/1 | E4/3 D4/2 C4h/1',
+  cLH:'C3/5 D3/4 E3/3 F3/2 | G3/1 A3/3 B3/2 C4/1 | B3/2 A3/3 G3/1 F3/2 | E3/3 D3/4 C3h/5',
+  gRHs:'G4/1 A4/2 B4/3 C5/1 | D5/2 E5/3 F#5/4 G5/5 | F#5/4 E5/3 D5/2 C5/1 | B4/3 A4/2 G4h/1',
+  gLHs:'G2/5 A2/4 B2/3 C3/2 | D3/1 E3/3 F#3/2 G3/1 | F#3/2 E3/3 D3/1 C3/2 | B2/3 A2/4 G2h/5',
+  fRHs:'F4/1 G4/2 A4/3 Bb4/4 | C5/1 D5/2 E5/3 F5/4 | E5/3 D5/2 C5/1 Bb4/4 | A4/3 G4/2 F4h/1',
+  fLHs:'F2/5 G2/4 A2/3 Bb2/2 | C3/1 D3/3 E3/2 F3/1 | E3/2 D3/3 C3/1 Bb2/2 | A2/3 G2/4 F2h/5',
+  triads:'C4+E4+G4h/1 D4+F4+A4h/1 | E4+G4+B4h/1 F4+A4+C5h/1 | G4+B4+D5h/1 A4+C5+E5h/1 | G4+B4+D5h/1 F4+A4+C5h/1 | E4+G4+B4h/1 D4+F4+A4h/1 | C4+E4+G4w/1',
+  ivv:'C3+E3+G3w/5 | F2+A2+C3w/5 | C3+E3+G3w/5 | G2+B2+D3w/5 | C3+E3+G3w/5',
+  grace:'Rh G4/1 | C5h/3 E5e/5 C5e/3 | E5h/5 D5/4 | C5h/3 A4/2 | G4h/1 G4/1 | C5h/1 E5e/3 C5e/1 | E5h/3 D5e/2 E5e/3 | G5h./5 | Rh E5/3 | G5h/5 E5e/3 C5e/1 | E5h/3 D5/2 | C5h/1 A4/2 | G4h/1 G4/1 | C5h/3 E5e/5 C5e/3 | E5h/5 D5/4 | C5h./3'
+});
+const scaleHT=(rh,lh)=>{const R=parseSong(rh).notes,Lh=parseSong(lh).notes;return rh.split('|').map((bar,bi)=>{const n=parseSong(bar).notes.length;const off=rh.split('|').slice(0,bi).reduce((a,b)=>a+parseSong(b).notes.length,0);
+  return parseSong(bar).notes.map((x,k)=>{const r=R[off+k],l=Lh[off+k];return r.name+'+'+l.name+(r.dur===2?'h':'')+'/'+r.finger;}).join(' ');}).join(' | ');};
+T.cHT=scaleHT(T.cRH,T.cLH);T.gHT=scaleHT(T.gRHs,T.gLHs);T.fHT=scaleHT(T.fRHs,T.fLHs);
+T.odeCh=addLH(T.ode1,[CH.C,CH.G,CH.C,CH.G,CH.C,CH.G,CH.C,CH.C]);
+// chords per bar (pickup bar first): I = C, IV = F, V = G
+T.graceHT=addLH(T.grace,[null,CH.C,CH.C,CH.F,CH.C,CH.C,CH.C,CH.G,CH.C,CH.C,CH.C,CH.F,CH.C,CH.C,CH.G,CH.C],3);
+WORLDS.push(
+ {id:4,name:'Scale Summit',sub:'major scales, thumb-under, triads, I–IV–V',quests:[
+  {id:'4.1',title:'C major scale · RH',xp:50,steps:[
+   {t:'read',title:'The major-scale recipe',html:`<p>Every major scale follows one pattern of steps: <b>W W H W W W H</b> (W = whole step, two keys apart; H = half step, the very next key).</p><p>C major uses only white keys: C D E F G A B C. The half steps fall at E–F and B–C — the places with no black key between.</p>`},
+   {t:'read',title:'Thumb under',html:`<p>Eight notes, five fingers — so the thumb travels.</p><p>RH up: <b>1 2 3, thumb under to F, 1 2 3 4 5</b>. Start moving the thumb under while finger 2 plays, so it's already waiting by F. Wrist level, elbow quiet — no jerks.</p><p>Down: 5 4 3 2 1, then <b>3 crosses over</b> the thumb to E.</p>`,kb:{from:'C4',to:'C5',marks:fingers('C4 D4 E4 F4 G4 A4 B4 C5',[1,2,3,1,2,3,4,5])}},
+   {t:'quiz',title:'Steps',kind:'mc',pass:3,items:[
+     {q:'Major scale pattern?',opts:['W W H W W W H','W H W W H W W','H W W W H W W','W W W H W W H'],a:'W W H W W W H'},
+     {q:'In C major, the half steps are…',opts:['E–F and B–C','C–D and F–G','D–E and A–B','None'],a:'E–F and B–C'},
+     {q:'RH C scale: the thumb goes under to…',opts:['F','E','G','D'],a:'F'},
+     {q:'Coming down, which finger crosses over the thumb?',opts:['3','2','4','5'],a:'3'}]},
+   {t:'song',title:'C scale · RH slow',text:T.cRH,bpm:60,need:2},
+   {t:'song',title:'C scale · RH',text:T.cRH,bpm:72,need:3}
+  ]},
+  {id:'4.2',title:'C major scale · LH',xp:50,steps:[
+   {t:'read',title:'Left hand',html:`<p>LH up: <b>5 4 3 2 1</b>, then <b>3 crosses over</b> the thumb to A, 2 1.</p><p>Down: <b>1 2 3</b> from C to A, then the <b>thumb goes under</b> to G, and 1 2 3 4 5 to the bottom. Mirror image of the right hand.</p>`,kb:{from:'C3',to:'C4',marks:fingers('C3 D3 E3 F3 G3 A3 B3 C4',[5,4,3,2,1,3,2,1])}},
+   {t:'song',title:'C scale · LH slow',text:T.cLH,bpm:60,need:2},
+   {t:'song',title:'C scale · LH',text:T.cLH,bpm:72,need:3}
+  ]},
+  {id:'4.3',title:'G & F major · key signatures',xp:50,steps:[
+   {t:'read',title:'Key signatures',html:`<p>Apply W W H W W W H starting on G and you need <b>F♯</b>. So G major's <b>key signature</b> has one sharp, written right after the clef. Every F in the piece is F♯ — no need to mark each one.</p><p>F major needs <b>B♭</b>: one flat in the key signature.</p><p>F major RH fingering is special: <b>1 2 3 4, thumb under to C, 1 2 3 4</b> — finger 4 takes the B♭.</p>`},
+   {t:'quiz',title:'Keys',kind:'mc',pass:3,items:[
+     {q:'G major has…',opts:['1 sharp: F♯','1 flat: B♭','2 sharps','No sharps or flats'],a:'1 sharp: F♯'},
+     {q:'F major has…',opts:['1 flat: B♭','1 sharp: F♯','2 flats','No sharps or flats'],a:'1 flat: B♭'},
+     {q:'Key signature with one sharp. You see an F. Play…',opts:['F♯','F','G','E'],a:'F♯'},
+     {q:'RH F major: which finger plays B♭?',opts:['4','3','1','5'],a:'4'}]},
+   {t:'song',title:'G major · RH',text:T.gRHs,bpm:60,need:2,key:'G'},
+   {t:'song',title:'G major · LH',text:T.gLHs,bpm:60,need:2,key:'G'},
+   {t:'song',title:'F major · RH',text:T.fRHs,bpm:60,need:2,key:'F'},
+   {t:'song',title:'F major · LH',text:T.fLHs,bpm:60,need:2,key:'F'}
+  ]},
+  {id:'4.4',title:'Triads',xp:50,steps:[
+   {t:'read',title:'Stack two thirds',html:`<p>A <b>triad</b> is three notes stacked in thirds: <b>root – 3rd – 5th</b>. Skip a key, play, skip a key, play.</p><p>C triad = C E G. On the staff the notes sit all on lines or all in spaces — a snowman.</p><p>RH fingers <b>1 3 5</b>. Drop into all three keys at once with arm weight, so they sound as one.</p>`,kb:{from:'C4',to:'B4',marks:{C4:'1',E4:'3',G4:'5'}},staff:['C4','E4','G4']},
+   {t:'quiz',title:'Build it',kind:'mc',pass:4,items:[
+     {q:'F major triad',opts:['F A C','F G A','F A B♭','F B D'],a:'F A C'},
+     {q:'G major triad',opts:['G B D','G A B','G C E','G B E'],a:'G B D'},
+     {q:'A minor triad',opts:['A C E','A C♯ E','A B C','A D E'],a:'A C E'},
+     {q:'D minor triad',opts:['D F A','D F♯ A','D E F','D G B'],a:'D F A'},
+     {q:'E minor triad',opts:['E G B','E G♯ B','E F G','E A C'],a:'E G B'}]},
+   {t:'song',title:'Triads up and down',html:`<p>C – Dm – Em – F – G – Am and back. All three notes exactly together.</p>`,text:T.triads,bpm:60,need:2}
+  ]},
+  {id:'4.5',title:'I – IV – V',xp:50,steps:[
+   {t:'read',title:'The three main chords',html:`<p>Number the scale notes 1–7 (in Roman numerals). The chords built on <b>I, IV and V</b> are the primary chords — they can harmonise thousands of songs.</p><p>In C: <b>I = C</b>, <b>IV = F</b>, <b>V = G</b>. In G: G, C, D. In F: F, B♭, C.</p><p>Lead sheets show the melody plus <b>chord symbols</b> (C, F, G…) above it. You play the melody with the RH and the named chords with the LH.</p>`},
+   {t:'quiz',title:'Name them',kind:'mc',pass:4,items:[
+     {q:'IV in C major',opts:['F','G','D','A'],a:'F'},
+     {q:'V in G major',opts:['D','C','A','E'],a:'D'},
+     {q:'I, IV, V in F major',opts:['F B♭ C','F B C','F A C','F C G'],a:'F B♭ C'},
+     {q:'V in C major',opts:['G','F','E','A'],a:'G'},
+     {q:'IV in G major',opts:['C','D','A','F'],a:'C'}]},
+   {t:'song',title:'LH chords: I IV I V I',html:`<p>LH fingers 5 3 1 on each chord. Move the whole hand as one shape.</p>`,text:T.ivv,bpm:60,need:2},
+   {t:'song',title:'Ode to Joy with chords',html:`<p>RH melody, LH holds the chord: C (I) or G (V).</p>`,text:T.odeCh,bpm:60,need:2}
+  ]},
+  {id:'4.6',title:'Scales hands together',xp:50,steps:[
+   {t:'read',title:'Two hands, one scale',html:`<p>Both hands start on C, an octave apart. The thumbs cross at different moments: RH thumb under on <b>F</b>, LH 3 over on <b>A</b>.</p><p>Go slower than either hand alone. Watch for the moment one hand crosses — the other must not stumble.</p>`},
+   {t:'song',title:'C major · hands together',text:T.cHT,bpm:52,need:2},
+   {t:'song',title:'C major · hands together',text:T.cHT,bpm:60,need:3,achOnDone:'scale'}
+  ]},
+  {id:'4.7',title:'Song: Amazing Grace',xp:50,steps:[
+   {t:'read',title:'Amazing Grace',html:`<p>The hymn tune “New Britain”, in 3/4 with a one-beat pickup. Count <b>1 2</b> in silence, “A-” lands on beat 3.</p><p>The RH moves between two positions — shift on the long notes. In the hymnal the high G on “me” is tied into the next bar; here you lift it there to breathe.</p><p>LH: one chord per bar — <b>C</b> (I), <b>F</b> (IV), <b>G</b> (V).</p>`},
+   {t:'song',title:'Melody',text:T.grace,bpm:80,bpb:3,need:2},
+   {t:'song',title:'With LH chords, slow',text:T.graceHT,bpm:66,bpb:3,need:1},
+   {t:'song',title:'With LH chords',text:T.graceHT,bpm:80,bpb:3,need:2}
+  ]}],
+  boss:{id:'B4',title:'The Summit',xp:200,boss:true,steps:[
+   {t:'read',title:'👹 The Summit',html:`<p>Three scales hands together, a hymn with chords, and instant I–IV–V. The air is thin up here.</p>`},
+   {t:'quiz',title:'I – IV – V, instantly',kind:'mc',pass:5,items:[
+     {q:'I IV V in C',opts:['C F G','C E G','C D G','C F A'],a:'C F G'},
+     {q:'I IV V in G',opts:['G C D','G B D','G C E','G D A'],a:'G C D'},
+     {q:'I IV V in F',opts:['F B♭ C','F B C','F A C','F C D'],a:'F B♭ C'},
+     {q:'V in F',opts:['C','B♭','G','D'],a:'C'},
+     {q:'IV in G',opts:['C','D','E','F♯'],a:'C'}]},
+   {t:'song',title:'C major HT',text:T.cHT,bpm:60,need:1},
+   {t:'song',title:'G major HT',text:T.gHT,bpm:60,need:1,key:'G'},
+   {t:'song',title:'F major HT',text:T.fHT,bpm:60,need:1,key:'F'},
+   {t:'song',title:'Amazing Grace',text:T.graceHT,bpm:80,bpb:3,need:3}
   ]}}
 );
 const ALL_WORLD_NAMES=['Tutorial Island','Middle C Meadows','Grand Staff Grove','Rhythm Rapids','Scale Summit','Harmony Harbor','Classic Castle','Expression Peaks'];

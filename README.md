@@ -29,6 +29,8 @@ Gamified piano lessons for a 61-key keyboard, from zero to real repertoire. The 
 
 The rock and metal-style pieces (Thunder Steps, Storm Warning, Rapid Fire, Bridge Burner, Ember Waltz, Dark Tide) are original compositions written for this app. Classical pieces are public domain. Melodie and the Minuet in G were converted from [Mutopia Project](https://www.mutopiaproject.org) public-domain editions.
 
+Display type is [Barlow Condensed](https://github.com/jpt/barlow) (SIL Open Font License, see `fonts/OFL.txt`), bundled so the app works offline.
+
 ## Tech
 
 Plain ES modules, no build step: GitHub Pages serves the files as they are. Pitch detection runs in the browser: YIN for the pitch, plus a spectral check that ignores notes still ringing from before, so held or overlapping notes don't produce phantom notes. Progress is stored on the device (Settings → backup code to move it).

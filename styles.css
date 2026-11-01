@@ -1,4 +1,6 @@
-:root{--bg:#14121c;--panel:#1f1c2b;--panel2:#2a2639;--ink:#f3f0fa;--mute:#a49fb8;--gold:#f2c14e;--good:#4ccf8a;--warn:#f2a24e;--bad:#ef5b6b;--line:#3a3550}
+:root{--bg:#2a0e1a;--panel:#3b1626;--panel2:#4c2234;--ink:#f4ead6;--mute:#cdb7b2;--gold:#e2a83b;--good:#5fcf8f;--warn:#f08a4b;--bad:#ff6b6b;--line:#63304a;--ebony:#1c0c13;--ivory:#f4ead6;--amp:#c4302f;--display:"Barlow Condensed","Arial Narrow",Impact,sans-serif}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-weight:800;font-display:swap;src:url(fonts/barlow-condensed-latin-800-normal.woff2) format("woff2")}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 body{padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 14px) calc(env(safe-area-inset-left) + 10px);max-width:520px;margin:0 auto}
@@ -10,7 +12,7 @@ h3{font-size:17px;margin:0 0 6px}
 .pill.on{background:#1d3b2b;color:var(--good)}
 nav{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px}
 nav button{padding:11px 0;border-radius:12px;border:0;background:var(--panel);color:var(--mute);font-size:14px;font-weight:600}
-nav button.active{background:var(--gold);color:#221a05}
+nav button.active{background:var(--gold);color:var(--ebony)}
 .card{background:var(--panel);border-radius:16px;padding:14px;margin-bottom:10px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .between{justify-content:space-between}
@@ -19,7 +21,7 @@ select,input[type=number],textarea{background:var(--panel2);color:var(--ink);bor
 select{width:100%}
 textarea{width:100%;min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size:14px}
 .btn{border:0;border-radius:14px;padding:14px 16px;font-size:17px;font-weight:700;background:var(--panel2);color:var(--ink);min-height:48px}
-.btn.big{width:100%;background:var(--gold);color:#221a05;font-size:19px}
+.btn.big{width:100%;background:var(--gold);color:var(--ebony);font-size:19px}
 .btn.small{padding:8px 12px;min-height:40px;font-size:15px}
 .btn.link{background:none;color:var(--mute);font-size:14px;font-weight:500;padding:8px;min-height:0;text-decoration:underline}
 .btn:disabled{opacity:.4}
@@ -89,11 +91,61 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 .dots{display:flex;gap:5px;justify-content:center;margin:6px 0}
 .dots span{width:9px;height:9px;border-radius:50%;background:var(--panel2)}
 .dots span.ok{background:var(--good)} .dots span.cur{background:var(--gold)} .dots span.miss{background:var(--warn)}
-#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);background:var(--gold);color:#221a05;font-weight:800;padding:12px 18px;border-radius:14px;z-index:9;max-width:90%;text-align:center;box-shadow:0 6px 20px #0008}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);background:var(--gold);color:var(--ebony);font-weight:800;padding:12px 18px;border-radius:14px;z-index:9;max-width:90%;text-align:center;box-shadow:0 6px 20px #0008}
 
 .seg{display:flex;gap:4px;background:var(--panel2);border-radius:10px;padding:3px;margin:6px 0}
 .seg button{flex:1;border:0;border-radius:8px;padding:7px 0;background:none;color:var(--mute);font-size:14px;font-weight:600}
-.seg button.active{background:var(--gold);color:#221a05}
+.seg button.active{background:var(--gold);color:var(--ebony)}
 #gate{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;z-index:5}
 #gate h2{color:var(--gold);margin:0 0 8px}
 #gate p{color:var(--mute);max-width:340px}
+
+/* ===== Theme: ebony & ivory. The interface is made of piano keys. ===== */
+:root{--keys:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 70 40' preserveAspectRatio='none'%3E%3Crect width='70' height='40' fill='%23f4ead6'/%3E%3Cpath d='M10 0v40M20 0v40M30 0v40M40 0v40M50 0v40M60 0v40' stroke='%23b9a98d' stroke-width='.6'/%3E%3Cpath d='M7.2 0h5.6v24H7.2zM17.2 0h5.6v24h-5.6zM37.2 0h5.6v24h-5.6zM47.2 0h5.6v24h-5.6zM57.2 0h5.6v24h-5.6z' fill='%231c0c13'/%3E%3C/svg%3E")}
+h1,h2,h3,.count,.now,.tunernote,.summary .big,.feedback,.quest,#gate h2{font-family:var(--display);letter-spacing:.2px}
+h1{font-size:26px;font-weight:800;color:var(--ivory)}
+h2{font-size:28px;font-weight:800}
+h3{font-size:24px;font-weight:800}
+.now,.tunernote,.count{font-weight:800}
+.card{border-radius:6px 20px 6px 20px;border:1px solid var(--line)}
+nav{gap:0;border-bottom:2px solid var(--line);margin-bottom:12px}
+nav button{background:none;border-radius:0;color:var(--mute);font-size:15px;padding:12px 0 10px;border-bottom:4px solid transparent;margin-bottom:-2px}
+nav button.active{background:none;color:var(--ivory);border-bottom-color:var(--gold)}
+.pill{background:var(--panel);border:1px solid var(--line)}
+.btn{border-radius:6px 6px 14px 14px;box-shadow:inset 0 -4px 0 #0004;background:var(--panel2)}
+.btn.big{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.3px;background:var(--gold);color:var(--ebony)}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 -2px 0 #0004}
+.btn.link{box-shadow:none;border-radius:0}
+.seg button.active,.beat.flash{background:var(--gold)}
+.staffwrap{background:#f7eedb;border-radius:4px 4px 12px 12px}
+/* HUD: the XP bar is a keyboard that fills with brass as you level */
+.hud .row b{font-family:var(--display);font-weight:800;font-size:30px;color:var(--ivory)}
+.hud .row b+span{font-family:var(--display);font-weight:600;font-size:20px}
+.xpbar{height:38px;border-radius:0 0 8px 8px;background:var(--keys) 0 0/50% 100% repeat-x;position:relative;overflow:hidden}
+.xpbar div{background:var(--gold);mix-blend-mode:multiply;transition:width .6s ease-out}
+/* map: each world has its own colour; each quest is a key (ivory = open, ebony = locked, red = boss) */
+#map .world{border-left:6px solid var(--wc,var(--gold))}
+#map .world:nth-of-type(8n+1){--wc:#3fb6a8}#map .world:nth-of-type(8n+2){--wc:#5aa9e6}#map .world:nth-of-type(8n+3){--wc:#8f7ae5}#map .world:nth-of-type(8n+4){--wc:#e0569a}
+#map .world:nth-of-type(8n+5){--wc:#f08a4b}#map .world:nth-of-type(8n+6){--wc:#e2c14b}#map .world:nth-of-type(8n+7){--wc:#7ccf6f}#map .world:nth-of-type(8n+8){--wc:#d9d4c7}
+.world h3 small{font-family:var(--display);font-size:18px;color:var(--wc,var(--mute))}
+.quest{font-weight:600;font-size:21px;line-height:1.15;min-height:54px;background:var(--ivory);color:var(--ebony);border-radius:3px 3px 12px 12px;box-shadow:inset 0 -5px 0 #0003;margin-top:6px}
+.quest .ic{color:var(--ebony)}
+.quest .xp{font-family:system-ui,sans-serif;font-weight:600;color:#6b5560}
+.quest:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 -2px 0 #0003}
+.quest.done{background:#e6dcc4}
+.quest.done .ic{color:#1f8a54}
+.quest.locked{opacity:1;background:var(--ebony);color:#8d7480;box-shadow:inset 0 -3px 0 #fff1}
+.quest.locked .ic,.quest.locked .xp{color:#6d5662}
+.quest.boss{background:var(--amp);color:#fff4e6;box-shadow:inset 0 -5px 0 #0004}
+.quest.boss .ic,.quest.boss .xp{color:#ffd9c8}
+.quest.boss.locked{background:#3a1218;color:#a8767a;box-shadow:inset 0 -3px 0 #fff1}
+.quest.cur{outline:3px solid var(--gold);outline-offset:2px}
+#toast{background:var(--ivory);border-radius:6px 6px 14px 14px;box-shadow:0 6px 20px #0008,inset 0 -4px 0 #0003}
+/* entry screen */
+#gate::before{content:"";display:block;width:min(300px,78vw);height:72px;margin-bottom:22px;background:var(--keys) 0 0/50% 100% repeat-x;border-radius:0 0 10px 10px;box-shadow:0 10px 30px #0006}
+#gate h2{font-size:44px;color:var(--ivory);margin:0 0 10px}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.btn.big:disabled{background:var(--panel2);color:var(--mute);opacity:1;box-shadow:inset 0 -4px 0 #0004}
+.quest.boss.locked{color:#d9a9a4}
+.toggle select{width:auto;flex:1;min-width:0}

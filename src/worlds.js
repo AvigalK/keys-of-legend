@@ -11,7 +11,7 @@ export const fingers=(names,f)=>{const o={};names.split(' ').forEach((n,i)=>o[n]
 export const WORLDS=[
  {id:0,name:'Tutorial Island',sub:'seat, hands, keyboard map, steady beat',quests:[
   {id:'0.1',title:'Setup',xp:50,steps:[
-   {t:'read',title:'Set up your seat',html:`<p>Put the keyboard on a stand or table so the keys are at about <b>elbow height</b>.</p><p>Sit on the <b>front half</b> of the chair, feet flat, facing the middle of the keyboard. Forearms roughly level with the keys, elbows hanging loosely just in front of your body.</p>`},
+   {t:'read',vis:'posture',title:'Set up your seat',html:`<p>Put the keyboard on a stand or table so the keys are at about <b>elbow height</b>.</p><p>Sit on the <b>front half</b> of the chair, feet flat, facing the middle of the keyboard. Forearms roughly level with the keys, elbows hanging loosely just in front of your body.</p>`},
    {t:'check',title:'Posture check',items:POSTURE},
    {t:'read',title:'Keyboard settings',html:`<p>Turn <b>Touch Response ON</b> — keys get louder when you press faster.</p><p>Keep the keyboard's own metronome <b>off</b> in this app; the app has its own click.</p><p>Phone on the music rest near the speakers, phone volume up.</p>`},
    {t:'notes',title:'Mic test',html:`<p>Play any 3 keys, one at a time. Each one should tick ✓.</p>`,seq:['*','*','*']}

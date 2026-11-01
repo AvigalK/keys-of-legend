@@ -5,6 +5,7 @@ import { WORLDS, LOCKED_WORLDS, NUMW } from '../src/worlds.js';
 import { genQuiz } from '../src/quiz.js';
 import { pieceView } from '../src/render.js';
 import { SONGS } from '../src/tunes.js';
+import { VIS_NAMES, visualHtml } from '../src/visuals.js';
 
 const quests = WORLDS.flatMap((w) => [...w.quests, w.boss]);
 const steps = quests.flatMap((q) => q.steps.map((s, i) => ({ q, s, i, tag: `${q.id} step ${i + 1} "${s.title}"` })));
@@ -59,4 +60,13 @@ test('every quiz generates valid questions (answer among distinct options)', () 
       });
     }
   }
+});
+
+test('every lesson visual exists, renders and animates', () => {
+  for (const name of VIS_NAMES) {
+    const h = visualHtml(name);
+    assert.ok(h.includes('<svg') && h.includes('<animate'), `${name}: no animated svg`);
+    assert.ok(!/NaN|undefined/.test(h), `${name}: bad number in svg`);
+  }
+  for (const { s, tag } of steps.filter(({ s }) => s.vis)) assert.ok(VIS_NAMES.includes(s.vis), `${tag}: unknown vis "${s.vis}"`);
 });

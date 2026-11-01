@@ -17,7 +17,7 @@ export const WORLDS=[
    {t:'notes',title:'Mic test',html:`<p>Play any 3 keys, one at a time. Each one should tick ✓.</p>`,seq:['*','*','*']}
   ]},
   {id:'0.2',title:'Hand shape & finger numbers',xp:50,steps:[
-   {t:'read',title:'Your piano hand',html:`<p>Let your arms hang by your sides and relax. See the gentle curve of your fingers? That's your piano hand.</p><p>Bring it to the keys <b>without changing the shape</b>. Play on the fingertips; the thumb plays on its side tip. Wrist level — not drooping, not raised.</p>`},
+   {t:'read',vis:'hand',title:'Your piano hand',html:`<p>Let your arms hang by your sides and relax. See the gentle curve of your fingers? That's your piano hand.</p><p>Bring it to the keys <b>without changing the shape</b>. Play on the fingertips; the thumb plays on its side tip. Wrist level — not drooping, not raised.</p>`},
    {t:'check',title:'Hand check',items:HAND},
    {t:'read',title:'Finger numbers',html:`<p>Both hands: <b>thumb 1</b>, index 2, middle 3, ring 4, <b>pinky 5</b>. Sheet music and your teacher talk in these numbers.</p>`,kb:{from:'C4',to:'G4',marks:fingers('C4 D4 E4 F4 G4',[1,2,3,4,5])}},
    {t:'quiz',title:'Finger quiz',kind:'mc',pass:4,items:[
@@ -28,7 +28,7 @@ export const WORLDS=[
    {t:'notes',title:'Five fingers',html:`<p>Right hand: thumb on the yellow key, then one finger per key — 1 2 3 4 5. Slowly, one at a time, keep the hand shape.</p>`,seq:['C4','D4','E4','F4','G4'],fingers:[1,2,3,4,5],hint:true,kbRange:[N('C3'),N('B4')],maxMistakes:2}
   ]},
   {id:'0.3',title:'Black-key map',xp:50,steps:[
-   {t:'read',title:'Groups of 2 and 3',html:`<p>Black keys come in groups of <b>2</b> and <b>3</b>. They're your map.</p><p><b>C</b> is the white key just <b>left of a group of 2</b>. <b>F</b> is just <b>left of a group of 3</b>.</p>`,kb:{from:'C3',to:'B4',marks:{C3:'C',F3:'F',C4:'C',F4:'F'}}},
+   {t:'read',vis:'blackkeys',title:'Groups of 2 and 3',html:`<p>Black keys come in groups of <b>2</b> and <b>3</b>. They're your map.</p><p><b>C</b> is the white key just <b>left of a group of 2</b>. <b>F</b> is just <b>left of a group of 3</b>.</p>`,kb:{from:'C3',to:'B4',marks:{C3:'C',F3:'F',C4:'C',F4:'F'}}},
    {t:'read',title:'Middle C',html:`<p>Your keyboard has <b>6 Cs</b>, numbered C2 (lowest) to C7 (highest).</p><p><b>Middle C = C4</b>, the 3rd C from the left — home base for both hands.</p>`,kb:{from:'C2',to:'C7',marks:{C2:'2',C3:'3',C4:'4',C5:'5',C6:'6',C7:'7'}}},
    {t:'notes',title:'Find every C',html:`<p>Play every C, from lowest to highest. Exact octave counts.</p>`,seq:['C2','C3','C4','C5','C6','C7'],strict:true,hint:'miss',maxMistakes:2},
    {t:'notes',title:'Middle C',html:`<p>Find middle C.</p>`,seq:['C4'],strict:true,hint:'miss',maxMistakes:0},
@@ -40,7 +40,7 @@ export const WORLDS=[
    {t:'random',title:'Key finder',html:`<p>Play each key shown. Exact octave counts. Use C and F as anchors.</p>`,from:'C3',to:'C5',n:10,pass:8,strict:true,show:'name'}
   ]},
   {id:'0.5',title:'Steady pulse',xp:50,steps:[
-   {t:'read',title:'Feel the beat',html:`<p>Music sits on a steady beat. Count <b>1-2-3-4</b> out loud with the click.</p><p>Play middle C on every beat with <b>finger 3</b>: let arm weight drop into the key, then release. Relaxed, not pushed.</p>`},
+   {t:'read',vis:'pulse',title:'Feel the beat',html:`<p>Music sits on a steady beat. Count <b>1-2-3-4</b> out loud with the click.</p><p>Play middle C on every beat with <b>finger 3</b>: let arm weight drop into the key, then release. Relaxed, not pushed.</p>`},
    {t:'song',title:'Right-hand pulse',text:T.pulseR,bpm:60,need:1,strict:true},
    {t:'song',title:'Left-hand pulse',html:`<p>Now left hand, finger 3, on <b>C3</b> (the C below middle C).</p>`,text:T.pulseL,bpm:60,need:1,strict:true}
   ]}],
@@ -53,15 +53,15 @@ export const WORLDS=[
   ]}},
  {id:1,name:'Middle C Meadows',sub:'C position, note values, first songs',quests:[
   {id:'1.1',title:'C position · right hand',xp:50,steps:[
-   {t:'read',title:'Five-finger C position',html:`<p>Right thumb on <b>middle C</b>, then one finger per white key: C D E F G = fingers 1 2 3 4 5.</p><p>Fingers stay resting on their keys even when they're not playing.</p>`,kb:{from:'C4',to:'G4',marks:fingers('C4 D4 E4 F4 G4',[1,2,3,4,5])}},
+   {t:'read',vis:'fivefinger',title:'Five-finger C position',html:`<p>Right thumb on <b>middle C</b>, then one finger per white key: C D E F G = fingers 1 2 3 4 5.</p><p>Fingers stay resting on their keys even when they're not playing.</p>`,kb:{from:'C4',to:'G4',marks:fingers('C4 D4 E4 F4 G4',[1,2,3,4,5])}},
    {t:'song',title:'RH warm-up',text:T.rh5,bpm:60,need:3}
   ]},
   {id:'1.2',title:'C position · left hand',xp:50,steps:[
-   {t:'read',title:'Left hand',html:`<p>Left pinky (5) on <b>C3</b>, the C below middle C. Thumb (1) lands on G3.</p><p>C D E F G = fingers <b>5 4 3 2 1</b>.</p>`,kb:{from:'C3',to:'G3',marks:fingers('C3 D3 E3 F3 G3',[5,4,3,2,1])}},
+   {t:'read',vis:'fivefingerLH',title:'Left hand',html:`<p>Left pinky (5) on <b>C3</b>, the C below middle C. Thumb (1) lands on G3.</p><p>C D E F G = fingers <b>5 4 3 2 1</b>.</p>`,kb:{from:'C3',to:'G3',marks:fingers('C3 D3 E3 F3 G3',[5,4,3,2,1])}},
    {t:'song',title:'LH warm-up',text:T.lh5,bpm:60,need:3}
   ]},
   {id:'1.3',title:'Note values',xp:50,steps:[
-   {t:'read',title:'How long is a note?',html:`<p>Note lengths are counted in beats. In 4/4 time a bar has 4 beats.</p><p><b>Quarter</b> = 1 beat (filled head + stem). <b>Half</b> = 2 beats (hollow head + stem). <b>Whole</b> = 4 beats (hollow, no stem).</p><p>Hold the key for the full count.</p>`},
+   {t:'read',vis:'values',title:'How long is a note?',html:`<p>Note lengths are counted in beats. In 4/4 time a bar has 4 beats.</p><p><b>Quarter</b> = 1 beat (filled head + stem). <b>Half</b> = 2 beats (hollow head + stem). <b>Whole</b> = 4 beats (hollow, no stem).</p><p>Hold the key for the full count.</p>`},
    {t:'quiz',title:'Count it',kind:'mc',pass:4,items:[
      {q:'A half note lasts…',opts:['1 beat','2 beats','3 beats','4 beats'],a:'2 beats'},
      {q:'A whole note lasts…',opts:['1 beat','2 beats','3 beats','4 beats'],a:'4 beats'},
@@ -245,7 +245,7 @@ WORLDS.push(
    {t:'song',title:'F major · LH',text:T.fLHs,bpm:60,need:2,key:'F'}
   ]},
   {id:'4.4',title:'Triads',xp:50,steps:[
-   {t:'read',title:'Stack two thirds',html:`<p>A <b>triad</b> is three notes stacked in thirds: <b>root – 3rd – 5th</b>. Skip a key, play, skip a key, play.</p><p>C triad = C E G. On the staff the notes sit all on lines or all in spaces — a snowman.</p><p>RH fingers <b>1 3 5</b>. Drop into all three keys at once with arm weight, so they sound as one.</p>`,kb:{from:'C4',to:'B4',marks:{C4:'1',E4:'3',G4:'5'}},staff:['C4','E4','G4']},
+   {t:'read',vis:'triad',title:'Stack two thirds',html:`<p>A <b>triad</b> is three notes stacked in thirds: <b>root – 3rd – 5th</b>. Skip a key, play, skip a key, play.</p><p>C triad = C E G. On the staff the notes sit all on lines or all in spaces — a snowman.</p><p>RH fingers <b>1 3 5</b>. Drop into all three keys at once with arm weight, so they sound as one.</p>`,kb:{from:'C4',to:'B4',marks:{C4:'1',E4:'3',G4:'5'}},staff:['C4','E4','G4']},
    {t:'quiz',title:'Build it',kind:'mc',pass:4,items:[
      {q:'F major triad',opts:['F A C','F G A','F A B♭','F B D'],a:'F A C'},
      {q:'G major triad',opts:['G B D','G A B','G C E','G B E'],a:'G B D'},
@@ -309,7 +309,7 @@ WORLDS.push(
    {t:'song',title:'All inversions · LH',text:T.invLH,bpm:60,need:1,achOnDone:'shape'}
   ]},
   {id:'5.2',title:'Broken chords & Alberti bass',xp:50,steps:[
-   {t:'read',title:'Spread the chord out',html:`<p>A <b>broken chord</b> plays the chord's notes one after another.</p><p><b>Alberti bass</b> is the classic pattern <b>low – high – middle – high</b> (C G E G), named after a composer who used it constantly. Mozart and Clementi too.</p><p>The secret is <b>wrist rotation</b>: rock the hand like turning a door knob, a little each way. The fingers barely lift. If your forearm tightens, slow down.</p>`,kb:{from:'C3',to:'B3',marks:{C3:'5',E3:'3',G3:'1'}}},
+   {t:'read',vis:'alberti',title:'Spread the chord out',html:`<p>A <b>broken chord</b> plays the chord's notes one after another.</p><p><b>Alberti bass</b> is the classic pattern <b>low – high – middle – high</b> (C G E G), named after a composer who used it constantly. Mozart and Clementi too.</p><p>The secret is <b>wrist rotation</b>: rock the hand like turning a door knob, a little each way. The fingers barely lift. If your forearm tightens, slow down.</p>`,kb:{from:'C3',to:'B3',marks:{C3:'5',E3:'3',G3:'1'}}},
    {t:'song',title:'Broken chords · RH',text:T.brokenRH,bpm:66,need:2},
    {t:'song',title:'Alberti bass · LH',html:`<p>C – F/C – G/B – C. Rotate, don't lift.</p>`,text:T.alberti,bpm:60,need:2},
    {t:'check',title:'Rotation check',items:['The wrist rocks gently side to side','The fingers stay close to the keys','The bottom note is not louder than the others']}
@@ -447,7 +447,7 @@ export const W3B={id:'3b',noRank:true,name:'Shift & Cross',sub:'moving past five
    {t:'song',title:'Lift & shift @ 60',text:T.shiftA,bpm:60,need:3}
   ]},
   {id:'3b.2',title:'Thumb-under (right hand)',xp:50,steps:[
-   {t:'read',title:'The thumb travels early',html:`<p>Going up past finger 3, the <b>thumb tucks under</b> the hand so it is waiting under finger 3 before it is needed. Here: E (3), thumb under to <b>F</b>, then 2 and 3.</p><p>Wrist stays <b>level</b> and the elbow glides — no jerk, no twist. Slow down until the crossing makes no bump in the sound.</p>`,kb:{from:'E4',to:'A4',marks:fingers('E4 F4 G4 A4',[3,1,2,3])}},
+   {t:'read',vis:'thumbunder',title:'The thumb travels early',html:`<p>Going up past finger 3, the <b>thumb tucks under</b> the hand so it is waiting under finger 3 before it is needed. Here: E (3), thumb under to <b>F</b>, then 2 and 3.</p><p>Wrist stays <b>level</b> and the elbow glides — no jerk, no twist. Slow down until the crossing makes no bump in the sound.</p>`,kb:{from:'E4',to:'A4',marks:fingers('E4 F4 G4 A4',[3,1,2,3])}},
    {t:'quiz',title:'Thumb-under',kind:'mc',pass:3,items:[
      mc('Going up, the thumb goes under after finger…',['3','1','5','2'],'3'),
      mc('When should the thumb start moving?',['Early, while finger 3 is still playing','Right when it has to play','After the note sounds','Only when you look'],'Early, while finger 3 is still playing'),
@@ -457,7 +457,7 @@ export const W3B={id:'3b',noRank:true,name:'Shift & Cross',sub:'moving past five
    {t:'check',title:'Form check',items:['Wrist stayed level through every crossing','Elbow glided, no jerk','No gap or bump in the sound at the crossing']}
   ]},
   {id:'3b.3',title:'Finger-over (right hand)',xp:50,steps:[
-   {t:'read',title:'Coming down',html:`<p>Going down, the thumb is the pivot: finger <b>3 crosses over</b> it. G (2), F (thumb), then <b>E with finger 3</b>.</p><p>It is the mirror of the thumb-under — the same smooth glide, in the other direction. The exercise goes down over the thumb, then back up under it.</p>`,kb:{from:'D4',to:'G4',marks:fingers('D4 E4 F4 G4',[2,3,1,2])}},
+   {t:'read',vis:'fingerover',title:'Coming down',html:`<p>Going down, the thumb is the pivot: finger <b>3 crosses over</b> it. G (2), F (thumb), then <b>E with finger 3</b>.</p><p>It is the mirror of the thumb-under — the same smooth glide, in the other direction. The exercise goes down over the thumb, then back up under it.</p>`,kb:{from:'D4',to:'G4',marks:fingers('D4 E4 F4 G4',[2,3,1,2])}},
    {t:'song',title:'Finger-over, slow',text:T.over,bpm:52,need:1},
    {t:'song',title:'Finger-over @ 60',text:T.over,bpm:60,need:3}
   ]},
@@ -472,7 +472,7 @@ export const W3B={id:'3b',noRank:true,name:'Shift & Cross',sub:'moving past five
    {t:'check',title:'Self-check',items:['The held note never re-sounded when I swapped','The swap was finished before the next note','My hand felt re-centred afterwards']}
   ]},
   {id:'3b.6',title:'Leaps',xp:50,steps:[
-   {t:'read',title:'Land without looking',html:`<p>A <b>leap</b> is a jump of an octave or more. The secret is that the hand <b>travels as one block</b> and you feel the distance with your arm — your eyes should already be on the landing key.</p><p>Go slow, aim for the key's centre, relax at the landing. If you keep missing, shrink the speed, not the jump.</p>`},
+   {t:'read',vis:'leap',title:'Land without looking',html:`<p>A <b>leap</b> is a jump of an octave or more. The secret is that the hand <b>travels as one block</b> and you feel the distance with your arm — your eyes should already be on the landing key.</p><p>Go slow, aim for the key's centre, relax at the landing. If you keep missing, shrink the speed, not the jump.</p>`},
    {t:'song',title:'LH octave leaps',text:T.leapLH,bpm:60,need:3},
    {t:'song',title:'RH octave leaps',text:T.leapRH,bpm:60,need:2},
    {t:'song',title:'Sixth leaps · LH',html:`<p>A smaller jump: a sixth. Thumb lands on A3 and E3.</p>`,text:T.leap6,bpm:60,need:2},

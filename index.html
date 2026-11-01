@@ -879,7 +879,7 @@ function playTones(midis,arp){
 let tab='learn';
 function showTab(t){
   if(song.running)song.stop();
-  task.active=false;hunt.active=false;
+  task.active=false;improv.active=false;hunt.active=false;
   tab=t;
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
   ['learn','song','hunt','tuner','settings'].forEach(k=>$('tab-'+k).classList.toggle('hidden',k!==t));
@@ -895,6 +895,7 @@ function wireEngine(){
   engine.on('onset',ev=>{
     if(song.running)song.onset(ev);
     else if(task.active)task.onset(ev);
+    else if(improv.active)improv.onset(ev);
     else if(tab==='hunt'&&hunt.active)hunt.onset(ev);
   });
   engine.on('pitch',r=>{if(tab==='tuner')tuner.show(r);});
@@ -1132,6 +1133,19 @@ function genQuiz(s){
       qs.push({html:`<div class="now" style="font-size:22px;text-align:left">Major or minor?</div><div class="sub">Tap ▶ to hear it again.</div>`,opts:['Major','Minor'],a:minor?'Minor':'Major',why:minor?'Minor — darker':'Major — brighter',play:[r,r+(minor?3:4),r+7]});}
     return qs;
   }
+  if(s.kind==='earint'){ // hear two notes one after the other, name the interval
+    const kinds=[['2nd',[1,2]],['3rd',[3,4]],['5th',[7]],['Octave',[12]]],roots=['C3','D3','E3','F3','G3','A3','C4','D4','E4','F4','G4'];const qs=[];let lastK=-1;
+    for(let i=0;i<s.n;i++){let k;do{k=Math.floor(Math.random()*kinds.length);}while(k===lastK);lastK=k;
+      const r=N(roots[Math.floor(Math.random()*roots.length)]),sz=kinds[k][1][Math.floor(Math.random()*kinds[k][1].length)];
+      qs.push({html:`<div class="now" style="font-size:22px;text-align:left">How far apart?</div><div class="sub">Two notes, one after the other. Tap ▶ to hear them again.</div>`,opts:kinds.map(x=>x[0]),a:kinds[k][0],why:kinds[k][0]+' ('+sz+' half steps)',play:[r,r+sz],arp:true});}
+    return qs;
+  }
+  if(s.kind==='earchord'){ // hear a four-note chord, name its quality
+    const kinds=[['Major 7th',[0,4,7,11]],['Minor 7th',[0,3,7,10]],['Dominant 7th',[0,4,7,10]]],roots=['C3','D3','F3','G3','A3','C4'];const qs=[];
+    for(let i=0;i<s.n;i++){const k=Math.floor(Math.random()*kinds.length),r=N(roots[Math.floor(Math.random()*roots.length)]);
+      qs.push({html:`<div class="now" style="font-size:22px;text-align:left">Which 7th chord?</div><div class="sub">Maj7 = dreamy · m7 = mellow · 7 = bluesy, wants to move. Tap ▶ to hear it again.</div>`,opts:kinds.map(x=>x[0]),a:kinds[k][0],why:kinds[k][0],play:kinds[k][1].map(x=>r+x)});}
+    return qs;
+  }
   const pool=whitesIn(s.from,s.to),qs=[];let last=null;
   for(let i=0;i<s.n;i++){
     let m;do{m=pool[Math.floor(Math.random()*pool.length)];}while(m===last&&pool.length>1);last=m;
@@ -1172,10 +1186,10 @@ function logEvt(s){P.log.push(dayStr(new Date())+' '+s);if(P.log.length>40)P.log
 const ACH={first:'🌅 First Light — first quest done',metronome:'🎯 Metronome’s Friend — 3 clean runs in a row',boss:'👹 Boss Slayer — first boss defeated',
   twohands:'🙌 Two-Handed — first hands-together piece',reader:'📖 Staff Reader — 20/20 reading round',streak7:'🔥 Streak 7 — a week in a row',
   perfect:'🧘 Perfect Posture — boss form check passed',scale:'🧗 Scale Runner — first scale hands together',shape:'🔄 Shapeshifter — all inversions, both hands',
-  minor:'🌘 Minor Key — first piece in a minor key',composer:'✍️ Composer — your own 8-bar melody',pedal:'🦶 Pedal Pusher — first pedalled piece',legend:'👑 Legend — every world conquered'};
+  minor:'🌘 Minor Key — first piece in a minor key',composer:'✍️ Composer — your own 8-bar melody',jam:'🎷 First Jam — your first improvisation',pedal:'🦶 Pedal Pusher — first pedalled piece',legend:'👑 Legend — every world conquered'};
 function ach(id){if(settings.admin||P.ach.includes(id))return;P.ach.push(id);saveP();setTimeout(()=>toast('Achievement! '+ACH[id]),900);}
 const RANKS=['Key Finder','Apprentice of the Ivory','Melody Scout','Staff Ranger','Rhythm Rider','Scale Climber','Harmony Mage','Castle Virtuoso','Keys of Legend'];
-function rank(){let r=0;WORLDS.forEach((w,i)=>{if(P.done[w.boss.id])r=i+1;});return RANKS[r];}
+function rank(){let r=0;WORLDS.filter(w=>!w.noRank).forEach((w,i)=>{if(P.done[w.boss.id])r=i+1;});return RANKS[r];}
 function renderHud(){
   const Lv=levelOf(P.xp),lo=250*(Lv-1)*Lv/2,hi=250*Lv*(Lv+1)/2;
   $('hud').innerHTML=`<div class="row between"><b style="color:var(--gold)">${rank()}</b><span>Lv ${Lv} · 🔥 ${P.streak}</span></div>
@@ -1690,8 +1704,235 @@ WORLDS.push(
    {t:'song',title:'Minuet in G',text:T.minuet,bpm:96,need:3,...MG}
   ]}}
 );
+// ================== New skills: World 3b + extra quests in Worlds 2–6 (curriculum revision 2026-11-01) ==================
+const mc=(q,opts,a,extra={})=>Object.assign({q,opts,a},extra);
+Object.assign(T,{
+  // --- World 3b: shifting and crossing ---
+  shiftA:'C4/1 D4/2 E4/3 F4/4 | G4/5 A4/1 B4/2 C5/3 | D5/4 E5h./5 | E5/5 D5/4 C5/3 B4/2 | A4/1 G4/5 F4/4 E4/3 | D4/2 C4h./1',
+  under:'E4/3 F4/1 G4/2 A4/3 | A4/3 G4/2 F4/1 E4/3 | E4/3 F4/1 G4/2 A4/3 | A4/3 G4/2 F4/1 E4/3',
+  over:'G4/2 F4/1 E4/3 D4/2 | C4/1 D4/2 E4/3 F4/1 | G4/2 F4/1 E4/3 D4/2 | C4w/1',
+  lhCross:'C3/5 D3/4 E3/3 F3/2 | G3/1 A3/3 B3/2 C4/1 | B3/2 A3/3 G3/1 F3/2 | E3/3 D3/4 C3h/5',
+  subst:'C4h./3 D4/2 | E4h./3 F4/2 | G4h./3 A4/2 | G4w/1',
+  leapLH:'C3/5 C2/5 C3/5 C2/5 | C3/5 C2/5 C3/5 C2/5 | C3w/5',
+  leapRH:'C4/1 C5/5 C4/1 C5/5 | C4/1 C5/5 C4/1 C5/5 | C4w/1',
+  leap6:'C3/5 A3/1 C3/5 A3/1 | G2/5 E3/1 G2/5 E3/1 | C3w/5',
+  twinkle:'C4/1 C4/1 G4/5 G4/5 | A4/5 A4/5 G4h/5 | F4/4 F4/4 E4/3 E4/3 | D4/2 D4/2 C4h/1 | G4/5 G4/5 F4/4 F4/4 | E4/3 E4/3 D4h/2 | G4/5 G4/5 F4/4 F4/4 | E4/3 E4/3 D4h/2 | C4/1 C4/1 G4/5 G4/5 | A4/5 A4/5 G4h/5 | F4/4 F4/4 E4/3 E4/3 | D4/2 D4/2 C4h/1',
+  twinkleHT:'C4+C3:w/1 C4/1 G4/5 G4/5 | A4+F3:w/5 A4/5 G4h/5 | F4+C3:w/4 F4/4 E4/3 E4/3 | D4+G3:h/2 D4/2 C4+C3h/1',
+  // --- World 2: hand independence (LH steady quarters, RH varies) ---
+  indepR:'E4h/3 E4/3 F4/4 | G4h/5 G4/5 F4/4 | E4/3 F4/4 G4/5 E4/3 | C4w/1',
+  // --- World 3: sixteenths, syncopation ---
+  sixteen:'C4s/1 D4s/2 E4s/3 F4s/4 G4/5 F4/4 E4/3 | D4e/2 C4s/1 D4s/2 E4/3 D4/2 C4/1 | E4e./3 F4s/4 G4/5 F4/4 E4/3 | D4s/2 E4s/3 F4s/4 E4s/3 D4/2 C4h/1',
+  synco:'C4/1 E4e/3 G4/5 E4e/3 C4/1 | D4/2 F4e/4 G4/5 F4e/4 D4/2 | E4/3 G4e/5 E4/3 C4e/1 D4/2 | C4w/1',
+  // --- World 4: dominant 7th, progressions ---
+  v7LH:'G2+B2+D3+F3w/5 | C3+E3+G3w/5 | G2+B2+D3+F3w/5 | C3+E3+G3w/5',
+  v7RH:'B4+D5+F5+G5w/1 | C5+E5+G5w/1 | B4+D5+F5+G5w/1 | C5+E5+G5w/1',
+  progC:'C3+E3+G3w/5 | G2+B2+D3w/5 | A2+C3+E3w/5 | F2+A2+C3w/5 | C3+E3+G3w/5 | G2+B2+D3w/5 | A2+C3+E3w/5 | F2+A2+C3w/5',
+  progG:'G2+B2+D3w/5 | D3+F#3+A3w/5 | E2+G2+B2w/5 | C3+E3+G3w/5 | G2+B2+D3w/5 | D3+F#3+A3w/5 | E2+G2+B2w/5 | C3+E3+G3w/5',
+  progF:'F2+A2+C3w/5 | C3+E3+G3w/5 | D3+F3+A3w/5 | Bb2+D3+F3w/5 | F2+A2+C3w/5 | C3+E3+G3w/5 | D3+F3+A3w/5 | Bb2+D3+F3w/5',
+  progRoot:'C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | A2/5 E3/1 A2/5 E3/1 | F2/5 C3/1 F2/5 C3/1 | C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | A2/5 E3/1 A2/5 E3/1 | F2/5 C3/1 F2/5 C3/1',
+  // --- World 5: seventh chords, lead sheet ---
+  iiVI:'D3+F3+A3+C4w/5 | G2+B2+D3+F3w/5 | C3+E3+G3+B3w/5 | C3+E3+G3+B3w/5',
+  maryRoot:'C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | C3/5 G3/1 C3/5 G3/1'
+});
+T.indep=mergeHands(T.indepR,rep('C3/5',16),4);
+T.maryLead=addLH(T.mary,[CH.C,CH.C,CH.G,CH.C,CH.C,CH.C,CH.G,CH.C]);
+T.maryRootHT=mergeHands(T.mary,T.maryRoot,4);
+const RHY16=[
+  {q:'How do you count this bar?',score:'C4s C4s C4s C4s C4 C4h',opts:['1 e & a 2 3 (4)','1 & 2 & 3 (4)','1 2 3 4','1 e & a 2 & 3 4'],a:'1 e & a 2 3 (4)'},
+  {q:'Play on which counts?',score:'C4e C4s C4s C4 C4h',opts:['1 & a 2 3 (4)','1 e & 2 3 (4)','1 & 2 3 4','1 e a 2 3 (4)'],a:'1 & a 2 3 (4)'},
+  {q:'Play on which counts?',score:'C4e. C4s C4 C4h',opts:['1 a 2 3 (4)','1 e 2 3 (4)','1 & 2 3 (4)','1 2 3 4'],a:'1 a 2 3 (4)'},
+  mc('One beat holds how many sixteenths?',['4','2','3','8'],'4'),
+  mc('A sixteenth note lasts…',['¼ beat','½ beat','1 beat','⅛ beat'],'¼ beat')];
+
+// ---------- World 3b ----------
+const W3B={id:'3b',noRank:true,name:'Shift & Cross',sub:'moving past five notes: shifts, thumb-under, finger-over, leaps',quests:[
+  {id:'3b.1',title:'Lift & shift',xp:50,steps:[
+   {t:'read',title:'Past five notes',html:`<p>Until now every piece stayed inside one five-finger position. Real music keeps moving, so the hand has to <b>shift</b>.</p><p>The shift happens <b>in the air</b>: finger 5 plays G, the hand lifts, and the thumb lands on <b>A</b> — a new position. Do it on the beat, without looking, and keep the hand shape.</p><p>Plan it one note ahead: while finger 5 plays, your eyes and thumb are already on A.</p>`,kb:{from:'C4',to:'E5',marks:fingers('C4 D4 E4 F4 G4 A4 B4 C5 D5 E5',[1,2,3,4,5,1,2,3,4,5])}},
+   {t:'quiz',title:'Plan the shift',kind:'mc',pass:3,items:[
+     mc('Finger 5 plays G4. Which finger plays the next note, A4, after a shift?',['Thumb (1)','Finger 5 again','Finger 2','Finger 3'],'Thumb (1)'),
+     mc('The shift happens…',['In the air, between the notes','While holding the key down','Only on long notes','After the piece ends'],'In the air, between the notes'),
+     mc('Best habit before a shift:',['Look at the landing note one beat early','Look at your hand after landing','Slam the key to be sure','Stop the metronome'],'Look at the landing note one beat early')]},
+   {t:'song',title:'Up and back, slow',html:`<p>The thumb lands on A4 after the 5. Down, it is 5 again on G4. Keep the beat through the shift.</p>`,text:T.shiftA,bpm:52,need:1},
+   {t:'song',title:'Lift & shift @ 60',text:T.shiftA,bpm:60,need:3}
+  ]},
+  {id:'3b.2',title:'Thumb-under (right hand)',xp:50,steps:[
+   {t:'read',title:'The thumb travels early',html:`<p>Going up past finger 3, the <b>thumb tucks under</b> the hand so it is waiting under finger 3 before it is needed. Here: E (3), thumb under to <b>F</b>, then 2 and 3.</p><p>Wrist stays <b>level</b> and the elbow glides — no jerk, no twist. Slow down until the crossing makes no bump in the sound.</p>`,kb:{from:'E4',to:'A4',marks:fingers('E4 F4 G4 A4',[3,1,2,3])}},
+   {t:'quiz',title:'Thumb-under',kind:'mc',pass:3,items:[
+     mc('Going up, the thumb goes under after finger…',['3','1','5','2'],'3'),
+     mc('When should the thumb start moving?',['Early, while finger 3 is still playing','Right when it has to play','After the note sounds','Only when you look'],'Early, while finger 3 is still playing'),
+     mc('A bump or gap at the crossing usually means…',['The thumb started too late','You played too softly','The metronome is slow','The wrist is too level'],'The thumb started too late')]},
+   {t:'song',title:'Thumb-under, slow',text:T.under,bpm:52,need:1},
+   {t:'song',title:'Thumb-under @ 60',text:T.under,bpm:60,need:3},
+   {t:'check',title:'Form check',items:['Wrist stayed level through every crossing','Elbow glided, no jerk','No gap or bump in the sound at the crossing']}
+  ]},
+  {id:'3b.3',title:'Finger-over (right hand)',xp:50,steps:[
+   {t:'read',title:'Coming down',html:`<p>Going down, the thumb is the pivot: finger <b>3 crosses over</b> it. G (2), F (thumb), then <b>E with finger 3</b>.</p><p>It is the mirror of the thumb-under — the same smooth glide, in the other direction. The exercise goes down over the thumb, then back up under it.</p>`,kb:{from:'D4',to:'G4',marks:fingers('D4 E4 F4 G4',[2,3,1,2])}},
+   {t:'song',title:'Finger-over, slow',text:T.over,bpm:52,need:1},
+   {t:'song',title:'Finger-over @ 60',text:T.over,bpm:60,need:3}
+  ]},
+  {id:'3b.4',title:'Left-hand crossings',xp:50,steps:[
+   {t:'read',title:'Mirror image',html:`<p>The left hand does the opposite. Going <b>up</b>: 5 4 3 2 1, then <b>finger 3 crosses over</b> the thumb to A. Going <b>down</b>: 1 2 3, then the <b>thumb goes under</b> to G.</p><p>One octave, C up and back. Same rules: early, level, quiet.</p>`,kb:{from:'C3',to:'C4',marks:fingers('C3 D3 E3 F3 G3 A3 B3 C4',[5,4,3,2,1,3,2,1])}},
+   {t:'song',title:'LH octave, slow',text:T.lhCross,bpm:52,need:1},
+   {t:'song',title:'LH octave @ 60',text:T.lhCross,bpm:60,need:3}
+  ]},
+  {id:'3b.5',title:'Finger substitution',xp:50,steps:[
+   {t:'read',title:'Swap while you hold',html:`<p>Hold a key down, and <b>silently swap fingers</b> on it. The sound does not change, but your hand is now in a better place.</p><p>Here you play each long note with finger <b>3</b>, swap to the <b>thumb</b> while it rings, and play the next note with finger 2 — the hand is re-centred without a gap.</p><p>The mic can tell if you re-struck the key: a clean run means the swap was silent.</p>`},
+   {t:'song',title:'Swap on the long notes',html:`<p>Beats 1–3: hold with 3, swap to 1. Beat 4: play with 2.</p>`,text:T.subst,bpm:54,need:2},
+   {t:'check',title:'Self-check',items:['The held note never re-sounded when I swapped','The swap was finished before the next note','My hand felt re-centred afterwards']}
+  ]},
+  {id:'3b.6',title:'Leaps',xp:50,steps:[
+   {t:'read',title:'Land without looking',html:`<p>A <b>leap</b> is a jump of an octave or more. The secret is that the hand <b>travels as one block</b> and you feel the distance with your arm — your eyes should already be on the landing key.</p><p>Go slow, aim for the key's centre, relax at the landing. If you keep missing, shrink the speed, not the jump.</p>`},
+   {t:'song',title:'LH octave leaps',text:T.leapLH,bpm:60,need:3},
+   {t:'song',title:'RH octave leaps',text:T.leapRH,bpm:60,need:2},
+   {t:'song',title:'Sixth leaps · LH',html:`<p>A smaller jump: a sixth. Thumb lands on A3 and E3.</p>`,text:T.leap6,bpm:60,need:2},
+   {t:'check',title:'Self-check',items:['I looked at the landing key, not at my hand','No glancing down during the jumps']}
+  ]},
+  {id:'3b.7',title:'Song: Twinkle, Twinkle',xp:50,steps:[
+   {t:'read',title:'Twinkle, Twinkle, Little Star',html:`<p>A French tune from the 1700s, so it is public domain. The first jump is a fifth: C to G.</p><p>The <b>pinky slide</b>: finger 5 plays G, then <b>slides</b> to the next key A with the same finger — no gap, no lift. Keep it relaxed.</p>`},
+   {t:'song',title:'Right hand, slow',text:T.twinkle,bpm:70,need:1},
+   {t:'song',title:'Right hand @ 90',text:T.twinkle,bpm:90,need:3},
+   {t:'song',title:'First phrase, hands together',html:`<p>LH holds one note per bar: C, F, C, then G and C.</p>`,text:T.twinkleHT,bpm:66,need:2}
+  ]}],
+  boss:{id:'B3b',title:'The Crossing Bridge',xp:200,boss:true,steps:[
+   {t:'read',title:'👹 The Crossing Bridge',html:`<p>The bridge only holds if there is no gap where you cross. A scale in each hand, a leap, and Twinkle at 90.</p>`},
+   {t:'check',title:'Form',items:['Wrist level through every crossing','Elbow gliding, no jerks','Fingers close to the keys']},
+   {t:'song',title:'C major · RH',text:T.cRH,bpm:60,need:2},
+   {t:'song',title:'C major · LH',text:T.cLH,bpm:60,need:2},
+   {t:'song',title:'Octave leaps · LH',text:T.leapLH,bpm:60,need:1},
+   {t:'check',title:'Leaps',items:['I did not look down during the leaps']},
+   {t:'song',title:'Twinkle @ 90',text:T.twinkle,bpm:90,need:3}
+  ]}};
+WORLDS.splice(WORLDS.findIndex(w=>w.id===4),0,W3B);
+
+const W=id=>WORLDS.find(w=>w.id===id);
+
+// ---------- World 2: hands apart, interval ears ----------
+W(2).quests.push(
+  {id:'2.8',title:'Hands apart',xp:50,steps:[
+   {t:'read',title:'Two hands, two jobs',html:`<p>So far both hands moved together. Now the <b>left hand keeps a steady pulse</b> on C3 while the right hand plays its own rhythm — long notes, short notes, different places.</p><p>The classic fault is the left hand “echoing” the right. Start the LH <b>first</b>, count out loud, and let the RH join. If it falls apart, drop the tempo, not the pulse.</p>`},
+   {t:'song',title:'Steady LH, moving RH',html:`<p>LH: C3 on every beat (finger 5). RH: halves and quarters.</p>`,text:T.indep,bpm:54,need:1},
+   {t:'song',title:'Hands apart @ 60',text:T.indep,bpm:60,need:2},
+   {t:'song',title:'Hands apart @ 72',text:T.indep,bpm:72,need:2}
+  ]},
+  {id:'2.9',title:'Hear the distance',xp:50,steps:[
+   {t:'read',title:'Four distances',html:`<p>Learn to <b>hear</b> intervals, not just read them.</p><p><b>2nd</b>: neighbours, like the first two notes of Mary Had a Little Lamb. <b>3rd</b>: C to E, the start of When the Saints. <b>5th</b>: the first leap of Twinkle, C to G, wide and open. <b>Octave</b>: the same note name, higher.</p><p>Hum the first note, then the second. If you can sing it, you can find it.</p>`},
+   {t:'quiz',title:'Interval ear · 8 of 10',kind:'earint',n:10,pass:8}
+  ]});
+W(2).boss.steps.push({t:'song',title:'Hands apart',text:T.indep,bpm:72,need:1});
+
+// ---------- World 3: sixteenths, syncopation ----------
+W(3).quests.push(
+  {id:'3.8',title:'Sixteenth notes',xp:50,steps:[
+   {t:'read',title:'Four per beat',html:`<p>A <b>sixteenth note</b> is a quarter of a beat: two flags (or a double beam). Four fit in one beat, counted <b>1 e & a</b>.</p><p>Think of them as eighths cut in half. Clap first, then play. Keep the fingers light and close to the keys, small and fast.</p><p>Triplets (three in a beat, counted 1-trip-let) are covered with your chat teacher, because the app cannot write them yet.</p>`},
+   {t:'quiz',title:'Count it',kind:'mc',pass:4,items:RHY16},
+   {t:'song',title:'Sixteenths, slowly',html:`<p>Count “1 e & a” out loud on the busy beats.</p>`,text:T.sixteen,bpm:54,need:1},
+   {t:'song',title:'Sixteenths @ 66',text:T.sixteen,bpm:66,need:2}
+  ]},
+  {id:'3.9',title:'Syncopation',xp:50,steps:[
+   {t:'read',title:'Off the beat',html:`<p><b>Syncopation</b> puts the accent where you do not expect it: a note starts <b>on the “&”</b> and is held across the next beat. Your foot keeps tapping the pulse while the music dances around it.</p><p>Count the first bar: <b>1 2 & (3) & 4</b> — a note on 1, on 2, on the “&” of 2 (held through 3), on the “&” of 3, and on 4.</p>`},
+   {t:'quiz',title:'Count it',kind:'mc',pass:2,items:[
+     {q:'How do you count this bar?',score:'C4 E4e G4 E4e C4',opts:['1 2 & (3) & 4','1 2 3 4','1 & 2 & 3 & 4','1 2 & 3 & 4'],a:'1 2 & (3) & 4'},
+     mc('Syncopation means…',['Accents land off the beat','Everything is staccato','The tempo changes','Both hands play the same notes'],'Accents land off the beat'),
+     mc('A note on the “&” held over beat 3: you play…',['On the “&”, nothing on 3','On 3 as well','Twice','Only on 4'],'On the “&”, nothing on 3')]},
+   {t:'song',title:'Syncopation, slowly',html:`<p>Tap your foot on every beat. Land the held notes on the “&”.</p>`,text:T.synco,bpm:56,need:1},
+   {t:'song',title:'Syncopation @ 70',text:T.synco,bpm:70,need:3}
+  ]});
+W(3).boss.steps.push({t:'quiz',title:'Count with sixteenths',kind:'mc',pass:3,items:RHY16.slice(0,4)});
+
+// ---------- World 4: dominant 7th, progressions, improvisation, key signatures ----------
+W(4).quests.push(
+  {id:'4.8',title:'Dominant 7th',xp:50,steps:[
+   {t:'read',title:'The chord that wants to move',html:`<p>Add one more third on top of a triad and you get a <b>seventh chord</b>. On the fifth note of the scale: <b>G B D F</b> is <b>G7</b>, the <b>dominant 7th</b>.</p><p>It sounds unfinished — the F pulls down to E and the B pulls up to C. Resolve it to C and the music relaxes: <b>V7 → I</b>.</p><p>Fingering: LH 5 3 2 1; RH 1 2 3 5.</p>`,kb:{from:'G2',to:'G3',marks:{G2:'5',B2:'3',D3:'2',F3:'1'}}},
+   {t:'quiz',title:'Spell it',kind:'mc',pass:3,items:[
+     mc('G7 contains…',['G B D F','G B D E','G C D F','G B E F'],'G B D F'),
+     mc('G7 resolves to…',['C','D','A minor','F'],'C'),
+     mc('In G7, the “7th” note is…',['F','E','A','C'],'F'),
+     mc('Listen: which chord is this?',['Dominant 7th (G7)','C major','A minor','G minor'],'Dominant 7th (G7)',{play:[N('G3'),N('B3'),N('D4'),N('F4')]})]},
+   {t:'song',title:'V7 → I · LH',text:T.v7LH,bpm:56,need:2},
+   {t:'song',title:'V7 → I · RH',html:`<p>RH voicing: B D F G, then C E G. The hand barely moves.</p>`,text:T.v7RH,bpm:56,need:2}
+  ]},
+  {id:'4.9',title:'Chord progressions',xp:50,steps:[
+   {t:'read',title:'I – V – vi – IV',html:`<p>Four chords carry thousands of songs: <b>I – V – vi – IV</b>. In C that is <b>C – G – Am – F</b>. In G: G – D – Em – C. In F: F – C – Dm – B♭.</p><p>Read the chord symbols, then play each as a block (all notes together), one per bar. When that is smooth, try a <b>root–fifth</b> pattern: bottom note, fifth above, repeat.</p>`},
+   {t:'song',title:'C – G – Am – F · block chords',text:T.progC,bpm:60,need:1},
+   {t:'song',title:'C – G – Am – F @ 72',text:T.progC,bpm:72,need:2},
+   {t:'song',title:'Root–fifth pattern',html:`<p>Same four chords. Root with 5, fifth above with 1.</p>`,text:T.progRoot,bpm:72,need:2},
+   {t:'song',title:'G – D – Em – C',text:T.progG,bpm:60,need:1,key:'G'},
+   {t:'song',title:'F – C – Dm – B♭',text:T.progF,bpm:60,need:1,key:'F'}
+  ]},
+  {id:'4.10',title:'Improv playground',xp:50,steps:[
+   {t:'read',title:'Five notes that cannot clash',html:`<p>The <b>pentatonic scale</b> has five notes: <b>C D E G A</b>. It has no half steps, so any combination sounds good — that is why it is the first scale for improvising.</p><p>Build a phrase like a question and an answer: two bars that go up and pause (question), two that come down and land on <b>C</b> (answer). Repeat a short idea instead of wandering.</p><p>Turn the keyboard's accompaniment off; the mic would pick it up.</p>`,kb:{from:'C4',to:'C5',marks:{C4:'C',D4:'D',E4:'E',G4:'G',A4:'A',C5:'C'}}},
+   {t:'improv',title:'Stay on the five keys',html:`<p>Play any 16 notes, any rhythm, using only <b>C D E G A</b> (any octave). Up to 2 slips are allowed.</p>`,pcs:[0,2,4,7,9],need:16,maxBad:2},
+   {t:'check',title:'Your phrase',items:['I played a 4-bar phrase that sounded finished','It ended on C','I repeated one short idea instead of wandering'],achOnDone:'jam'}
+  ]},
+  {id:'4.11',title:'Key signatures & the circle of fifths',xp:50,steps:[
+   {t:'read',title:'Sharps and flats, in order',html:`<p>Sharps appear in the order <b>F C G D A E B</b>; flats in the reverse order <b>B E A D G C F</b>.</p><p>Walk up in fifths and each key adds one sharp: <b>C (none) → G (1♯) → D (2♯) → A (3♯) → E (4♯)</b>. Walk down in fifths and each adds a flat: <b>C → F (1♭) → B♭ (2♭) → E♭ (3♭) → A♭ (4♭)</b>. That ring of keys is the <b>circle of fifths</b>.</p><p>Quick trick for flat keys: the key is the <b>second-to-last flat</b>. Two flats B♭ E♭ → the key is B♭.</p>`},
+   {t:'quiz',title:'Name the key',kind:'mc',pass:6,items:[
+     {q:'Which major key?',score:'D4 E4 F#4 G4',key:'D',opts:['D major','G major','F major','C major'],a:'D major'},
+     {q:'Which major key?',score:'F4 G4 A4 Bb4',key:'F',opts:['F major','G major','D major','C major'],a:'F major'},
+     {q:'Which major key?',score:'G4 A4 B4 C5',key:'G',opts:['G major','D major','F major','C major'],a:'G major'},
+     mc('Key with 2 sharps',['D major','G major','A major','B♭ major'],'D major'),
+     mc('Key with 2 flats',['B♭ major','F major','E♭ major','D major'],'B♭ major'),
+     mc('Order of the sharps',['F C G D A E B','B E A D G C F','C D E F G A B','G D A E B F C'],'F C G D A E B'),
+     mc('Key with no sharps or flats',['C major','F major','G major','A minor only'],'C major'),
+     mc('One step along the circle of fifths from G (adding a sharp)',['D major','C major','A major','F major'],'D major')]}
+  ]});
+W(4).boss.steps.push(
+  {t:'song',title:'I – V – vi – IV in C',text:T.progC,bpm:72,need:1},
+  {t:'improv',title:'Improvise',html:`<p>16 notes from C D E G A. Make it sound finished.</p>`,pcs:[0,2,4,7,9],need:16,maxBad:2});
+
+// ---------- World 5: seventh chords, lead sheets, more key signatures ----------
+W(5).quests.push(
+  {id:'5.8',title:'Seventh chords',xp:50,steps:[
+   {t:'read',title:'Three flavours',html:`<p>Stack a triad plus one more third and the top note decides the colour:</p><p><b>Cmaj7</b> = C E G <b>B</b> — dreamy. <b>Cm7</b> = C E♭ G <b>B♭</b> — mellow. <b>C7</b> (dominant) = C E G <b>B♭</b> — bluesy, wants to move.</p><p>The same recipe works on any root: F maj7 = F A C E; D m7 = D F A C; G7 = G B D F.</p>`},
+   {t:'quiz',title:'Spell it',kind:'mc',pass:4,items:[
+     mc('Cmaj7',['C E G B','C E G B♭','C E♭ G B♭','C E G A'],'C E G B'),
+     mc('C7',['C E G B♭','C E G B','C E♭ G B♭','C F G B♭'],'C E G B♭'),
+     mc('Dm7',['D F A C','D F♯ A C','D F A B','D F A C♯'],'D F A C'),
+     mc('Fmaj7',['F A C E','F A C E♭','F A♭ C E♭','F G C E'],'F A C E'),
+     mc('G7',['G B D F','G B D F♯','G B♭ D F','G B D E'],'G B D F')]},
+   {t:'quiz',title:'Chord ear · 5 of 8',kind:'earchord',n:8,pass:5},
+   {t:'song',title:'ii – V – I with 7ths · LH',html:`<p>Dm7 – G7 – Cmaj7. LH fingers 5 3 2 1.</p>`,text:T.iiVI,bpm:56,need:1},
+   {t:'song',title:'ii – V – I @ 66',text:T.iiVI,bpm:66,need:2}
+  ]},
+  {id:'5.9',title:'Lead-sheet playing',xp:50,steps:[
+   {t:'read',title:'Melody plus chord symbols',html:`<p>A <b>lead sheet</b> is the melody with chord symbols above it. You decide how to play the chords.</p><p>Mary Had a Little Lamb: <b>C | C | G | C | C | C | G | C</b>. First try block chords in the LH. Then try the root–fifth pattern.</p><p>The most important lead-sheet skill: <b>keep going</b>. If you slip, do not stop or go back — find the next beat and carry on.</p>`},
+   {t:'song',title:'Block chords',text:T.maryLead,bpm:60,need:1},
+   {t:'song',title:'Root–fifth pattern',text:T.maryRootHT,bpm:66,need:1},
+   {t:'song',title:'Lead sheet @ 70, no stopping',text:T.maryRootHT,bpm:70,need:2},
+   {t:'check',title:'Keep going',items:['I kept the beat going through a slip, without stopping']}
+  ]},
+  {id:'5.10',title:'More keys',xp:50,steps:[
+   {t:'read',title:'Three sharps, three flats',html:`<p>Continue the circle: <b>A major</b> has 3 sharps (F♯ C♯ G♯); <b>E major</b> has 4 (F♯ C♯ G♯ D♯). On the flat side: <b>E♭ major</b> has 3 flats (B♭ E♭ A♭).</p><p>Each major key's <b>relative minor</b> shares its signature: A major ↔ F♯ minor, E♭ major ↔ C minor.</p><p>Practise on a keyboard: find the scale of A major (A B C♯ D E F♯ G♯ A) and of E♭ major (E♭ F G A♭ B♭ C D E♭), slowly, one hand at a time. The app does not draw these signatures yet.</p>`},
+   {t:'quiz',title:'Name them',kind:'mc',pass:5,items:[
+     mc('A major has…',['3 sharps','2 sharps','3 flats','4 sharps'],'3 sharps'),
+     mc('E♭ major has…',['3 flats','2 flats','3 sharps','4 flats'],'3 flats'),
+     mc('Sharps in A major',['F♯ C♯ G♯','F♯ C♯','F♯ C♯ G♯ D♯','B♭ E♭ A♭'],'F♯ C♯ G♯'),
+     mc('E major has…',['4 sharps','3 sharps','4 flats','1 sharp'],'4 sharps'),
+     mc('Relative minor of E♭ major',['C minor','E♭ minor','A minor','G minor'],'C minor'),
+     mc('Flats in E♭ major',['B♭ E♭ A♭','B♭ E♭','B♭ E♭ A♭ D♭','F♯ C♯ G♯'],'B♭ E♭ A♭')]}
+  ]});
+W(5).boss.steps.push({t:'song',title:'Lead sheet · Mary',text:T.maryRootHT,bpm:70,need:1});
+
+// ---------- World 6: memory and performance ----------
+W(6).quests.push(
+  {id:'6.7',title:'Play from memory',xp:50,steps:[
+   {t:'read',title:'Memory is a skill',html:`<p>Memorise in layers: <b>hands separately from memory</b>, then together, one small section at a time. Learn the <b>shape and harmony</b>, not just the finger order. Start from the <b>middle</b> of the piece as well as the beginning, so a slip in the middle does not erase the ending.</p><p>Look at the first bar, then look away and play it. Add one bar at a time.</p>`},
+   {t:'song',title:'Warm up: Minuet part A, RH',text:T.minA_R,bpm:72,need:1,...MG},
+   {t:'check',title:'From memory',items:['I played the Minuet part A (RH, LH, then together) with the music closed','I knew where I was in the piece at all times','I can start from the middle of part A']}
+  ]},
+  {id:'6.8',title:'First performance',xp:50,steps:[
+   {t:'read',title:'Play for someone',html:`<p>A piece only becomes yours when you play it for another person. A friend, family, or a recording you send. The goal is not a perfect take; it is to <b>keep going</b>.</p><p>Pick a piece you can play clean at a comfortable tempo. Take one slow breath, count the first bar in your head, and play.</p>`},
+   {t:'quiz',title:'On stage',kind:'mc',pass:3,items:[
+     mc('You slip in the middle. You…',['Keep going with the beat','Stop and restart','Apologise and quit','Play faster'],'Keep going with the beat'),
+     mc('Under pressure the tempo usually…',['Speeds up','Slows down a lot','Stays exactly the same','Disappears'],'Speeds up'),
+     mc('Best preparation:',['Play it for someone in advance','Practise it only alone','Avoid thinking about it','Play it faster'],'Play it for someone in advance')]},
+   {t:'check',title:'Do it',items:['I played a whole piece for a real listener (live or a recording I sent)','I kept going through a slip','I noticed what changed under pressure (tempo, shaky hands, breathing)']}
+  ]});
+W(6).boss.steps.push({t:'check',title:'From memory',items:['I played the Minuet (part A at least) from memory, music closed']});
+
 const ALL_WORLD_NAMES=['Tutorial Island','Middle C Meadows','Grand Staff Grove','Rhythm Rapids','Scale Summit','Harmony Harbor','Classic Castle','Expression Peaks'];
-const LOCKED_WORLDS=ALL_WORLD_NAMES.slice(WORLDS.length);
+const NUMW=WORLDS.filter(w=>!w.noRank).length; // numbered worlds (3b is a bonus world between 3 and 4)
+const LOCKED_WORLDS=ALL_WORLD_NAMES.slice(NUMW);
 
 // ================== Map & lesson player ==================
 function allQ(){const a=[];WORLDS.forEach(w=>{w.quests.forEach(q=>a.push(q));a.push(w.boss);});return a;}
@@ -1711,16 +1952,16 @@ function renderMap(){
     });
     h+='</div>';
   });
-  if(LOCKED_WORLDS.length)h+=`<div class="card"><h3>Coming next</h3><div class="sub">Worlds ${WORLDS.length}–7: ${LOCKED_WORLDS.join(' · ')}. Until they're in the app, your chat teacher runs these lessons.</div></div>`;
+  if(LOCKED_WORLDS.length)h+=`<div class="card"><h3>Coming next</h3><div class="sub">Worlds ${NUMW}–7: ${LOCKED_WORLDS.join(' · ')}. Until they're in the app, your chat teacher runs these lessons.</div></div>`;
   $('map').innerHTML=h;
   $('map').querySelectorAll('.quest[data-q]').forEach(b=>b.onclick=()=>L.open(allQ().find(q=>q.id===b.dataset.q)));
 }
 const L={q:null,i:0,okSteps:{},
   open(q){this.tok=(this.tok||0)+1;this.q=q;this.selfChecked=!micOn();this.i=0;this.manual=0;$('map').classList.add('hidden');$('lessonDone').classList.add('hidden');$('lesson').classList.remove('hidden');this.render();window.scrollTo(0,0);},
-  close(){if(song.running)song.stop();task.active=false;parkPerf();this.tok=(this.tok||0)+1;this.q=null;renderMap();},
+  close(){if(song.running)song.stop();task.active=false;improv.active=false;parkPerf();this.tok=(this.tok||0)+1;this.q=null;renderMap();},
   render(){
     const q=this.q,s=q.steps[this.i];
-    task.active=false;
+    task.active=false;improv.active=false;
     $('lessonQuest').textContent=(q.boss?'Boss · ':'Quest '+q.id+' · ')+q.title;
     $('lessonProg').textContent=`Step ${this.i+1} / ${q.steps.length}`;
     $('stepTitle').textContent=s.title;
@@ -1739,7 +1980,7 @@ const L={q:null,i:0,okSteps:{},
       done:()=>{if(!live())return;this.setDone(true);if(s.achOnDone)ach(s.achOnDone);},failed:()=>{if(!live())return;this.fails=(this.fails||0)+1;if(this.fails>=2&&!q.boss)$('stepOverride').classList.remove('hidden');},live});
   },
   setDone(v){this.stepDone=v;$('stepNext').disabled=!v;if(v&&!micOn())this.selfChecked=true;},
-  next(){if(!this.stepDone)return;task.active=false;if(song.running)song.stop();
+  next(){if(!this.stepDone)return;task.active=false;improv.active=false;if(song.running)song.stop();
     if(this.i<this.q.steps.length-1){this.i++;this.render();window.scrollTo(0,0);}else this.finish();},
   finish(){
     if(settings.admin){ // preview only: record nothing
@@ -1764,7 +2005,7 @@ const L={q:null,i:0,okSteps:{},
     $('lessonDone').classList.remove('hidden');
     $('lessonDone').innerHTML=`<div class="summary"><div class="big clean">${q.boss?'👹 Boss defeated!':'✨ Quest complete!'}</div>
       +${gain} XP${first?'':' (replay)'}${r.levelUp?` · ⬆️ Level ${levelOf(P.xp)}!`:''}${q.boss&&first?`<br>New rank: <b>${rank()}</b>`:''}</div>
-      ${nq?`<button class="btn big" id="doneNext" style="margin-top:12px">Next: ${nq.boss?'Boss · ':nq.id+' '}${nq.title} ›</button>`:(LOCKED_WORLDS.length?`<p>All app worlds done! Ask your chat teacher for World ${WORLDS.length}.</p>`:'<p>🏆 Every world conquered. Endless Mode is with your chat teacher.</p>')}
+      ${nq?`<button class="btn big" id="doneNext" style="margin-top:12px">Next: ${nq.boss?'Boss · ':nq.id+' '}${nq.title} ›</button>`:(LOCKED_WORLDS.length?`<p>All app worlds done! Ask your chat teacher for World ${NUMW}.</p>`:'<p>🏆 Every world conquered. Endless Mode is with your chat teacher.</p>')}
       <button class="btn" id="doneMap" style="width:100%;margin-top:8px">Map</button>`;
     if(nq)$('doneNext').onclick=()=>L.open(nq);
     $('doneMap').onclick=()=>{this.q=null;renderMap();};
@@ -1776,8 +2017,39 @@ $('stepNext').onclick=()=>L.next();
 $('adminSkip').onclick=()=>{if(!settings.admin)return;task.active=false;if(song.running)song.stop();L.setDone(true);L.next();};
 $('stepOverride').onclick=()=>{L.manual=(L.manual||0)+1;$('stepOverride').classList.add('hidden');task.active=false;L.setDone(true);};
 
+// ================== Improvisation task (mic-checked: stay inside a note set) ==================
+const improv={active:false,
+  start(cfg,host,onFinish){
+    this.cfg=cfg;this.onFinish=onFinish;this.ok=0;this.bad=0;this.host=host;this.active=true;
+    host.innerHTML=`<div class="now ivCount" style="text-align:center;font-size:44px"></div><div class="feedback ivFb"></div><div class="meter"><div class="ivBar"></div></div><div class="answers ivAns"></div>`;
+    this.draw();
+    if(!micOn()){ // mic off: honour system
+      const a=host.querySelector('.ivAns');a.innerHTML=`<button class="btn">✓ I played ${cfg.need} notes, all inside the set</button>`;
+      a.querySelector('button').onclick=()=>{if(!this.active)return;this.active=false;onFinish({ok:cfg.need,bad:0,self:true});};
+    }
+  },
+  draw(){this.host.querySelector('.ivCount').textContent=this.ok+' / '+this.cfg.need;this.host.querySelector('.ivBar').style.width=Math.min(100,100*this.ok/this.cfg.need)+'%';},
+  onset(ev){
+    if(!this.active||ev.midi==null)return;
+    const fb=this.host.querySelector('.ivFb');
+    if(this.cfg.pcs.includes(pc(ev.midi))){this.ok++;fb.textContent='';fb.className='feedback ivFb';this.draw();
+      if(this.ok>=this.cfg.need){this.active=false;this.onFinish({ok:this.ok,bad:this.bad});}}
+    else{this.bad++;fb.textContent='✗ '+pretty(midiName(ev.midi)).replace(/\d+$/,'')+' is outside the set ('+this.bad+'/'+(this.cfg.maxBad+1)+')';fb.className='feedback ivFb bad';
+      if(this.bad>this.cfg.maxBad){this.active=false;this.onFinish({ok:this.ok,bad:this.bad,failed:true});}}
+  }
+};
 const STEPS={
   read(s,ui){ui.done();},
+  improv(s,ui){
+    const go=()=>{
+      ui.msg('');
+      improv.start({pcs:s.pcs,need:s.need,maxBad:s.maxBad!=null?s.maxBad:2},ui.host,r=>{
+        if(!r.failed){ui.msg(r.self?'Self-checked ✓':`${r.ok} notes${r.bad?`, ${r.bad} outside the set`:', none outside the set'}.`,true);ui.done();}
+        else{ui.msg('Too many notes outside the set — stay on the highlighted keys.',false);ui.failed();const b=document.createElement('button');b.className='btn big';b.style.marginTop='10px';b.textContent='↻ Again';b.onclick=go;ui.host.appendChild(b);}
+      });
+    };
+    go();
+  },
   check(s,ui){
     ui.host.innerHTML=`<div class="checks">${s.items.map((it,i)=>`<label><input type="checkbox" data-i="${i}">${it}</label>`).join('')}</div>`;
     const boxes=[...ui.host.querySelectorAll('input')];
@@ -1835,7 +2107,7 @@ const STEPS={
     go();
   },
   song(s,ui){
-    const world=+String(L.q.id).replace('B','').split('.')[0];
+    const world=parseInt(String(L.q.id).replace('B',''),10);
     const box=document.createElement('div'),seg=document.createElement('div');seg.className='seg viewSeg';
     const info=document.createElement('div');info.className='sub';info.innerHTML=`${s.clk?s.bpm/s.clk+' bpm (dotted quarter)':s.bpm+' bpm'}${s.ts?' · '+s.ts:s.bpb===3?' · 3/4':''} · need <b>${s.need}</b> clean run${s.need>1?'s':''} in a row`;
     const drawPiece=()=>{const v=resolveView(world);box.innerHTML=pieceView(s.text,v,s.bpb,s);wireSeg(seg,v,drawPiece);};

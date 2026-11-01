@@ -342,27 +342,30 @@ const T={
   ode1:'E4/3 E4/3 F4/4 G4/5 | G4/5 F4/4 E4/3 D4/2 | C4/1 C4/1 D4/2 E4/3 | E4/3 D4/2 D4h/2 | E4/3 E4/3 F4/4 G4/5 | G4/5 F4/4 E4/3 D4/2 | C4/1 C4/1 D4/2 E4/3 | D4/2 C4/1 C4h/1',
   ode2:'E4/3 E4/3 F4/4 G4/5 | G4/5 F4/4 E4/3 D4/2 | C4/1 C4/1 D4/2 E4/3 | E4q./3 D4e/2 D4h/2 | E4/3 E4/3 F4/4 G4/5 | G4/5 F4/4 E4/3 D4/2 | C4/1 C4/1 D4/2 E4/3 | D4q./2 C4e/1 C4h/1',
   odeHT:'E4+C3:w/3 E4/3 F4/4 G4/5 | G4+G3:w/5 F4/4 E4/3 D4/2 | C4+C3:w/1 C4/1 D4/2 E4/3 | E4+G3:w/3 D4/2 D4h/2 | E4+C3:w/3 E4/3 F4/4 G4/5 | G4+G3:w/5 F4/4 E4/3 D4/2 | C4+C3:w/1 C4/1 D4/2 E4/3 | D4+G3:w/2 C4/1 C4h/1',
-  mary:'E4/3 D4/2 C4/1 D4/2 | E4/3 E4/3 E4h/3 | D4/2 D4/2 D4h/2 | E4/3 G4/5 G4h/5 | E4/3 D4/2 C4/1 D4/2 | E4/3 E4/3 E4/3 E4/3 | D4/2 D4/2 E4/3 D4/2 | C4w/1',
-  maryLH:'E3/3 D3/4 C3/5 D3/4 | E3/3 E3/3 E3h/3 | D3/4 D3/4 D3h/4 | E3/3 G3/1 G3h/1 | E3/3 D3/4 C3/5 D3/4 | E3/3 E3/3 E3/3 E3/3 | D3/4 D3/4 E3/3 D3/4 | C3w/5',
   rhythm:'C4/3 C4/3 C4h/3 | C4w/3 | C4h/3 C4h/3 | C4/3 C4/3 C4/3 C4/3 | C4w/3',
   skips:'C4/1 E4/3 D4/2 F4/4 | E4/3 G4/5 F4/4 D4/2 | C4w/1',
   waltz:'C4/1 D4/2 E4/3 | E4h/3 Rq | D4/2 E4/3 D4/2 | C4h/1 Rq | E4/3 F4/4 G4/5 | G4h/5 Rq | F4/4 E4/3 D4/2 | C4h./1',
   gRH:'G4/1 A4/2 B4/3 C5/4 | D5/5 C5/4 B4/3 A4/2 | G4w/1',
   gLH:'G2/5 A2/4 B2/3 C3/2 | D3/1 C3/2 B2/3 A2/4 | G2w/5',
-  auRH:rep('C4/1 C4/1 C4/1 D4/2 | E4h/3 D4h/2 | C4/1 E4/3 D4/2 D4/2 | C4w/1 |',2),
-  auHT:rep('C4+C3:w/1 C4/1 C4/1 D4/2 | E4+C3:wh/3 D4h/2 | C4+G3:w/1 E4/3 D4/2 D4/2 | C4+C3w/1 |',2),
   pulseR:rep('C4/3 C4/3 C4/3 C4/3 |',4), pulseL:rep('C3/3 C3/3 C3/3 C3/3 |',4)
 };
+// original rock/metal-style pieces (replace the folk/hymn tunes); classical pieces stay
+Object.assign(T,{
+  thunder:'C4/1 C4/1 E4/3 C4/1 | G4h/5 F4/4 E4/3 | D4/2 D4/2 F4/4 D4/2 | G4h/5 E4/3 D4/2 | E4/3 E4/3 G4/5 E4/3 | F4h/4 E4/3 D4/2 | C4/1 E4/3 G4/5 E4/3 | C4w/1',
+  thunderLH:'C3/5 C3/5 E3/3 C3/5 | G3h/1 F3/2 E3/3 | D3/4 D3/4 F3/2 D3/4 | G3h/1 E3/3 D3/4 | E3/3 E3/3 G3/1 E3/3 | F3h/2 E3/3 D3/4 | C3/5 E3/3 G3/1 E3/3 | C3w/5',
+  stormRH:'E4/3 E4/3 E4/3 G4/5 | F4h/4 D4h/2 | E4/3 E4/3 E4/3 G4/5 | F4h/4 D4h/2 | C4/1 D4/2 E4/3 F4/4 | G4h/5 G4h/5 | F4/4 E4/3 D4/2 C4/1 | C4w/1',
+  stormHT:'E4+C3:w/3 E4/3 E4/3 G4/5 | F4+G3:wh/4 D4h/2 | E4+C3:w/3 E4/3 E4/3 G4/5 | F4+G3:wh/4 D4h/2 | C4+F3:w/1 D4/2 E4/3 F4/4 | G4+C3:wh/5 G4h/5 | F4+G3:w/4 E4/3 D4/2 C4/1 | C4+C3w/1'
+});
 const SONGS=[
   {id:'rh5',name:'5-finger warm-up · RH (C position)',bpm:60,text:T.rh5},
   {id:'lh5',name:'5-finger warm-up · LH (C position)',bpm:60,text:T.lh5},
   {id:'ode1',name:'Ode to Joy · RH (simple rhythm)',bpm:80,text:T.ode1},
   {id:'ode2',name:'Ode to Joy · RH (real dotted rhythm)',bpm:80,text:T.ode2},
   {id:'odeHT',name:'Ode to Joy · hands together',bpm:60,text:T.odeHT},
-  {id:'mary',name:'Mary Had a Little Lamb · RH',bpm:90,text:T.mary},
-  {id:'maryLH',name:'Mary Had a Little Lamb · LH',bpm:70,text:T.maryLH},
-  {id:'auRH',name:'Au Clair de la Lune · RH',bpm:72,text:T.auRH},
-  {id:'auHT',name:'Au Clair de la Lune · hands together',bpm:72,text:T.auHT},
+  {id:'thunder',name:'Thunder Steps · RH',bpm:90,text:T.thunder},
+  {id:'thunderLH',name:'Thunder Steps · LH',bpm:70,text:T.thunderLH},
+  {id:'stormRH',name:'Storm Warning · RH',bpm:72,text:T.stormRH},
+  {id:'stormHT',name:'Storm Warning · hands together',bpm:72,text:T.stormHT},
   {id:'gRH',name:'G position warm-up · RH',bpm:60,text:T.gRH},
   {id:'gLH',name:'G position warm-up · LH',bpm:60,text:T.gLH},
   {id:'custom',name:'Custom (paste from your teacher)',bpm:80,text:''}
@@ -1284,11 +1287,12 @@ const WORLDS=[
    {t:'read',title:'The bass staff',html:`<p>The bass staff (bottom) is for the left hand. Middle C sits on a ledger line just <b>above</b> it.</p><p>Your LH C position: C3 is the <b>2nd space from the bottom</b>, then D3 line, E3 space, F3 line, G3 space.</p>`,staff:['C3','D3','E3','F3','G3'],labels:true},
    {t:'quiz',title:'Read the note',kind:'staffname',from:'C3',to:'G3',n:10,pass:9},
    {t:'random',title:'Read & play',from:'C3',to:'G3',n:10,pass:8,show:'staff'},
-   {t:'song',title:'Mary · left hand',text:T.maryLH,bpm:70,need:1}
+   {t:'song',title:'Thunder Steps · left hand',text:T.thunderLH,bpm:70,need:1}
   ]},
-  {id:'1.7',title:'Song: Mary Had a Little Lamb',xp:50,steps:[
-   {t:'song',title:'Learn it',text:T.mary,bpm:70,need:1},
-   {t:'song',title:'Target tempo',text:T.mary,bpm:90,need:3}
+  {id:'1.7',title:'Song: Thunder Steps',xp:50,steps:[
+   {t:'read',title:'Thunder Steps',html:`<p>Your first rock riff — an original, built the way real riffs are: a short idea that repeats and climbs. Three notes hammer on the beat (<b>C C E C</b>), then a long note <b>holds</b> while the next idea answers.</p><p>Play it with weight, not force: drop into each key and let go. Keep the beat dead steady — that is what makes a riff hit.</p>`},
+   {t:'song',title:'Learn it',text:T.thunder,bpm:70,need:1},
+   {t:'song',title:'Target tempo',text:T.thunder,bpm:90,need:3}
   ]}],
   boss:{id:'B1',title:'The Meadow Guardian',xp:200,boss:true,steps:[
    {t:'read',title:'👹 The Meadow Guardian',html:`<p>It strikes at uneven beats and flat fingers. Three clean runs of Ode to Joy at 80, then read your way past it.</p>`},
@@ -1329,14 +1333,14 @@ const WORLDS=[
    {t:'song',title:'G position · RH',text:T.gRH,bpm:60,need:2},
    {t:'song',title:'G position · LH',text:T.gLH,bpm:60,need:2}
   ]},
-  {id:'2.7',title:'Song: Au Clair de la Lune',xp:50,steps:[
-   {t:'read',title:'Au Clair de la Lune',html:`<p>A French folk song in C position. First the right hand, then add one LH note per bar.</p>`},
-   {t:'song',title:'Right hand',text:T.auRH,bpm:72,need:2},
-   {t:'song',title:'Hands together',text:T.auHT,bpm:72,need:2}
+  {id:'2.7',title:'Song: Storm Warning',xp:50,steps:[
+   {t:'read',title:'Storm Warning',html:`<p>An original rock theme in C position: a menacing repeated-note riff, then a climb up the five fingers and a drop to home. First the right hand, then add <b>one LH note per bar</b> — the low note is the thunder under the riff.</p>`},
+   {t:'song',title:'Right hand',text:T.stormRH,bpm:72,need:2},
+   {t:'song',title:'Hands together',text:T.stormHT,bpm:72,need:2}
   ]}],
   boss:{id:'B2',title:'The Grove Warden',xp:200,boss:true,steps:[
    {t:'read',title:'👹 The Grove Warden',html:`<p>Two hands, two volumes, twenty notes. Beat all three.</p>`},
-   {t:'song',title:'Au Clair · hands together',text:T.auHT,bpm:72,need:3},
+   {t:'song',title:'Storm Warning · hands together',text:T.stormHT,bpm:72,need:3},
    {t:'dyn',title:'Soft vs loud',seq:['C4','E4','G4','E4','C4'],fingers:[1,3,5,3,1],diff:6},
    {t:'random',title:'Read 20 notes',html:`<p>Grand staff. 18 of 20 first try.</p>`,from:'C3',to:'C5',n:20,pass:18,show:'staff'}
   ]}}
@@ -1348,9 +1352,9 @@ Object.assign(T,{
   stacc:'C4/1 E4/3 G4/5 E4/3 | C4/1 E4/3 G4h/5 | G4/5 E4/3 C4/1 E4/3 | G4/5 E4/3 C4h/1',
   dRH:'D4/1 E4/2 F#4/3 G4/4 | A4/5 G4/4 F#4/3 E4/2 | D4w/1',
   dLH:'D3/5 E3/4 F#3/3 G3/2 | A3/1 G3/2 F#3/3 E3/4 | D3w/5',
-  pickup:'Rq C4/1 E4/3 F4/4 | G4w/5 | Rq C4/1 E4/3 F4/4 | G4w/5',
-  saintsRH:'Rq C4/1 E4/3 F4/4 | G4w/5 | Rq C4/1 E4/3 F4/4 | G4w/5 | Rq C4/1 E4/3 F4/4 | G4h/5 E4h/3 | C4h/1 E4h/3 | D4w/2 | Rq E4/3 E4/3 D4/2 | C4h./1 C4/1 | E4h/3 G4/5 G4/5 | G4h/5 F4h/4 | Rh E4/3 F4/4 | G4h/5 E4h/3 | C4h/1 D4h/2 | C4w/1',
-  saintsHT:'Rq C4/1 E4/3 F4/4 | G4+C3w/5 | Rq C4+C3:h./1 E4/3 F4/4 | G4+C3w/5 | Rq C4+C3:h./1 E4/3 F4/4 | G4+C3:wh/5 E4h/3 | C4+C3:wh/1 E4h/3 | D4+G3w/2 | Rq E4+C3:h./3 E4/3 D4/2 | C4+C3:wh./1 C4/1 | E4+C3:wh/3 G4/5 G4/5 | G4+F3:wh/5 F4h/4 | Rh E4+C3:h/3 F4/4 | G4+C3:wh/5 E4h/3 | C4+G3:wh/1 D4h/2 | C4+C3w/1'
+  pickup:'Rq C4/1 E4/3 G4/5 | G4w/5 | Rq C4/1 E4/3 G4/5 | G4w/5',
+  fireRH:'Rq C4/1 E4/3 G4/5 | G4h./5 E4/3 | F4e/4 E4e/3 D4/2 C4/1 D4/2 | E4h./3 C4e/1 E4e/3 | G4q./5 F4e/4 E4/3 D4/2 | E4h/3 C4h/1 | Rq C4/1 E4/3 G4/5 | G4h./5 E4/3 | F4e/4 E4e/3 D4/2 C4/1 D4/2 | E4h./3 G4e/5 F4e/4 | E4q./3 D4e/2 C4/1 D4/2 | C4w/1',
+  fireHT:'Rq C4+C3:h./1 E4/3 G4/5 | G4+C3:wh./5 E4/3 | F4+F3:we/4 E4e/3 D4/2 C4/1 D4/2 | E4+C3:wh./3 C4e/1 E4e/3 | G4+G3:wq./5 F4e/4 E4/3 D4/2 | E4+C3:wh/3 C4h/1 | Rq C4+C3:h./1 E4/3 G4/5 | G4+C3:wh./5 E4/3 | F4+F3:we/4 E4e/3 D4/2 C4/1 D4/2 | E4+C3:wh./3 G4e/5 F4e/4 | E4+G3:wq./3 D4e/2 C4/1 D4/2 | C4+C3w/1'
 });
 const RHY=[ // counting drills: rests/held beats in ( )
   {q:'How do you count this bar?',score:'C4 C4e C4e C4h',opts:['1 2 & 3 (4)','1 & 2 3 (4)','1 2 3 & (4)','1 2 3 4'],a:'1 2 & 3 (4)'},
@@ -1406,20 +1410,20 @@ WORLDS.push(
    {t:'song',title:'D position · LH',text:T.dLH,bpm:66,need:2}
   ]},
   {id:'3.6',title:'Pickups',xp:50,steps:[
-   {t:'read',title:'Starting before beat 1',html:`<p>Many songs start on an <b>upbeat</b>: a short <b>pickup bar</b> before the first full bar.</p><p>“When the Saints” starts on beat 2: count <b>1</b> in silence, play C E F on <b>2 3 4</b>, and the big G lands on the next <b>1</b>.</p><p>Here the silent beat is shown as a rest so you can count it.</p>`},
-   {t:'song',title:'Saints · first lines',text:T.pickup,bpm:80,need:2}
+   {t:'read',title:'Starting before beat 1',html:`<p>Many songs start on an <b>upbeat</b>: a short <b>pickup bar</b> before the first full bar.</p><p>Rapid Fire (the next quest) starts on beat 2: count <b>1</b> in silence, play C E G on <b>2 3 4</b>, and the big G lands on the next <b>1</b>.</p><p>Here the silent beat is shown as a rest so you can count it.</p>`},
+   {t:'song',title:'Pickup riff',text:T.pickup,bpm:80,need:2}
   ]},
-  {id:'3.7',title:'Song: When the Saints',xp:50,steps:[
-   {t:'read',title:'When the Saints Go Marching In',html:`<p>Traditional. RH stays in C position the whole song. The LH plays long notes: <b>C3</b> (finger 5), <b>G3</b> (finger 1) and once <b>F3</b> (finger 2).</p><p>Hold every long G for all four beats — that's where the song swings.</p>`},
-   {t:'song',title:'Right hand',text:T.saintsRH,bpm:80,need:2},
-   {t:'song',title:'Hands together, slow',text:T.saintsHT,bpm:70,need:1},
-   {t:'song',title:'Hands together',text:T.saintsHT,bpm:80,need:2}
+  {id:'3.7',title:'Song: Rapid Fire',xp:50,steps:[
+   {t:'read',title:'Rapid Fire',html:`<p>An original rock tune in C position built on the pickup you just learned: <b>rest, then C E G</b> kicks in on beat 2. Then a held note, a run of eighths, and a dotted rhythm to end the phrase.</p><p>RH stays in C position the whole time. The LH plays long notes — <b>C3</b> (finger 5), <b>F3</b> (finger 2) and <b>G3</b> (finger 1) — as a foundation. Hold every long note its full length: that's where the weight comes from.</p>`},
+   {t:'song',title:'Right hand',text:T.fireRH,bpm:80,need:2},
+   {t:'song',title:'Hands together, slow',text:T.fireHT,bpm:70,need:1},
+   {t:'song',title:'Hands together',text:T.fireHT,bpm:80,need:2}
   ]}],
   boss:{id:'B3',title:'The Rapids',xp:200,boss:true,steps:[
-   {t:'read',title:'👹 The Rapids',html:`<p>The river speeds up. Count four rhythms right, then ride the Saints at 90, hands together, three times clean.</p>`},
+   {t:'read',title:'👹 The Rapids',html:`<p>The river speeds up. Count four rhythms right, then play Rapid Fire at 90, hands together, three times clean.</p>`},
    {t:'quiz',title:'Count 4 rhythms',kind:'mc',pass:4,items:RHY},
    {t:'song',title:'Eighths @ 80',text:T.eighths,bpm:80,need:1},
-   {t:'song',title:'The Saints @ 90',text:T.saintsHT,bpm:90,need:3}
+   {t:'song',title:'Rapid Fire @ 90',text:T.fireHT,bpm:90,need:3}
   ]}}
 );
 Object.assign(T,{
@@ -1431,14 +1435,17 @@ Object.assign(T,{
   fLHs:'F2/5 G2/4 A2/3 Bb2/2 | C3/1 D3/3 E3/2 F3/1 | E3/2 D3/3 C3/1 Bb2/2 | A2/3 G2/4 F2h/5',
   triads:'C4+E4+G4h/1 D4+F4+A4h/1 | E4+G4+B4h/1 F4+A4+C5h/1 | G4+B4+D5h/1 A4+C5+E5h/1 | G4+B4+D5h/1 F4+A4+C5h/1 | E4+G4+B4h/1 D4+F4+A4h/1 | C4+E4+G4w/1',
   ivv:'C3+E3+G3w/5 | F2+A2+C3w/5 | C3+E3+G3w/5 | G2+B2+D3w/5 | C3+E3+G3w/5',
-  grace:'Rh G4/1 | C5h/3 E5e/5 C5e/3 | E5h/5 D5/4 | C5h/3 A4/2 | G4h/1 G4/1 | C5h/1 E5e/3 C5e/1 | E5h/3 D5e/2 E5e/3 | G5h./5 | Rh E5/3 | G5h/5 E5e/3 C5e/1 | E5h/3 D5/2 | C5h/1 A4/2 | G4h/1 G4/1 | C5h/3 E5e/5 C5e/3 | E5h/5 D5/4 | C5h./3'
 });
 const scaleHT=(rh,lh)=>{const R=parseSong(rh).notes,Lh=parseSong(lh).notes;return rh.split('|').map((bar,bi)=>{const n=parseSong(bar).notes.length;const off=rh.split('|').slice(0,bi).reduce((a,b)=>a+parseSong(b).notes.length,0);
   return parseSong(bar).notes.map((x,k)=>{const r=R[off+k],l=Lh[off+k];return r.name+'+'+l.name+(r.dur===2?'h':'')+'/'+r.finger;}).join(' ');}).join(' | ');};
 T.cHT=scaleHT(T.cRH,T.cLH);T.gHT=scaleHT(T.gRHs,T.gLHs);T.fHT=scaleHT(T.fRHs,T.fLHs);
 T.odeCh=addLH(T.ode1,[CH.C,CH.G,CH.C,CH.G,CH.C,CH.G,CH.C,CH.C]);
 // chords per bar (pickup bar first): I = C, IV = F, V = G
-T.graceHT=addLH(T.grace,[null,CH.C,CH.C,CH.F,CH.C,CH.C,CH.C,CH.G,CH.C,CH.C,CH.C,CH.F,CH.C,CH.C,CH.G,CH.C],3);
+Object.assign(T,{ // Ember Waltz: original rock waltz in A minor, 3/4, power chords (root + fifth) in the LH
+  ember:'Rh A4/1 | C5h/3 D5/4 | E5h./5 | D5h/4 C5/3 | A4h./1 | C5h/3 D5/4 | E5h/5 D5/4 | C5h/3 B4/2 | A4h./1 | E5/5 E5e/5 D5e/4 C5/3 | D5e/4 C5e/3 B4e/2 A4e/1 B4/2 | D5h/4 E5/5 | B4h./2 | C5h/3 D5/4 | E5h/5 D5/4 | C5h/3 B4/2 | A4h./1',
+  emberHT:'Rh A4:qq/1 | C5:h+_A2:h.+_E3:h.h/3 D5:qq/4 | E5:h.+_A2:h.+_E3:h.h./5 | D5:h+_F2:h.+_C3:h.h/4 C5:qq/3 | A4:h.+_A2:h.+_E3:h.h./1 | C5:h+_A2:h.+_E3:h.h/3 D5:qq/4 | E5:h+_A2:h.+_E3:h.h/5 D5:qq/4 | C5:h+_E2:h.+_B2:h.h/3 B4:qq/2 | A4:h.+_A2:h.+_E3:h.h./1 | E5:q+_F2:h.+_C3:h.q/5 E5:ee/5 D5:ee/4 C5:qq/3 | D5:e+_F2:h.+_C3:h.e/4 C5:ee/3 B4:ee/2 A4:ee/1 B4:qq/2 | D5:h+_G2:h.+_D3:h.h/4 E5:qq/5 | B4:h.+_E2:h.+_B2:h.h./2 | C5:h+_A2:h.+_E3:h.h/3 D5:qq/4 | E5:h+_F2:h.+_C3:h.h/5 D5:qq/4 | C5:h+_E2:h.+_B2:h.h/3 B4:qq/2 | A4:h.+_A2:h.+_E3:h.h./1'
+});
+
 WORLDS.push(
  {id:4,name:'Scale Summit',sub:'major scales, thumb-under, triads, I–IV–V',quests:[
   {id:'4.1',title:'C major scale · RH',xp:50,steps:[
@@ -1495,14 +1502,14 @@ WORLDS.push(
    {t:'song',title:'C major · hands together',text:T.cHT,bpm:52,need:2},
    {t:'song',title:'C major · hands together',text:T.cHT,bpm:60,need:3,achOnDone:'scale'}
   ]},
-  {id:'4.7',title:'Song: Amazing Grace',xp:50,steps:[
-   {t:'read',title:'Amazing Grace',html:`<p>The hymn tune “New Britain”, in 3/4 with a one-beat pickup. Count <b>1 2</b> in silence, “A-” lands on beat 3.</p><p>The RH moves between two positions — shift on the long notes. In the hymnal the high G on “me” is tied into the next bar; here you lift it there to breathe.</p><p>LH: one chord per bar — <b>C</b> (I), <b>F</b> (IV), <b>G</b> (V).</p>`},
-   {t:'song',title:'Melody',text:T.grace,bpm:80,bpb:3,need:2},
-   {t:'song',title:'With LH chords, slow',text:T.graceHT,bpm:66,bpb:3,need:1},
-   {t:'song',title:'With LH chords',text:T.graceHT,bpm:80,bpb:3,need:2}
+  {id:'4.7',title:'Song: Ember Waltz',xp:50,steps:[
+   {t:'read',title:'Ember Waltz',html:`<p>An original rock waltz in <b>A minor</b>, 3/4, with a one-beat pickup. Count <b>1 2</b> in silence; the first note lands on beat 3.</p><p>The LH plays <b>power chords</b> — just the <b>root and the fifth</b> (A+E, F+C, G+D, E+B), the sound of rock guitar. One per bar, fingers 5 and 1, held for the whole bar. The RH moves in a small minor-pentatonic range, so the melody stays tight and dark.</p><p>Play the long notes with weight; let the eighths in bars 10–11 push forward.</p>`},
+   {t:'song',title:'Melody',text:T.ember,bpm:80,bpb:3,need:2},
+   {t:'song',title:'With power chords, slow',text:T.emberHT,bpm:66,bpb:3,need:1},
+   {t:'song',title:'With power chords',text:T.emberHT,bpm:80,bpb:3,need:2}
   ]}],
   boss:{id:'B4',title:'The Summit',xp:200,boss:true,steps:[
-   {t:'read',title:'👹 The Summit',html:`<p>Three scales hands together, a hymn with chords, and instant I–IV–V. The air is thin up here.</p>`},
+   {t:'read',title:'👹 The Summit',html:`<p>Three scales hands together, a rock waltz with power chords, and instant I–IV–V. The air is thin up here.</p>`},
    {t:'quiz',title:'I – IV – V, instantly',kind:'mc',pass:5,items:[
      {q:'I IV V in C',opts:['C F G','C E G','C D G','C F A'],a:'C F G'},
      {q:'I IV V in G',opts:['G C D','G B D','G C E','G D A'],a:'G C D'},
@@ -1512,7 +1519,7 @@ WORLDS.push(
    {t:'song',title:'C major HT',text:T.cHT,bpm:60,need:1},
    {t:'song',title:'G major HT',text:T.gHT,bpm:60,need:1,key:'G'},
    {t:'song',title:'F major HT',text:T.fHT,bpm:60,need:1,key:'F'},
-   {t:'song',title:'Amazing Grace',text:T.graceHT,bpm:80,bpb:3,need:3}
+   {t:'song',title:'Ember Waltz',text:T.emberHT,bpm:80,bpb:3,need:3}
   ]}}
 );
 // merge an independent right-hand and left-hand part into one playable line (one event per onset)
@@ -1550,8 +1557,8 @@ Object.assign(T,{
   emH:'E4/1 F#4/2 G4/3 A4/1 | B4/2 C5/3 D#5/4 E5/5 | D#5/4 C5/3 B4/2 A4/1 | G4/3 F#4/2 E4h/1',
   six8:'C4/1 D4e/2 E4/3 F4e/4 | G4q./5 E4q./3 | F4/4 E4e/3 D4/2 E4e/3 | C4h./1',
   phrase:'C4/1 D4/2 E4/3 F4/4 | G4/5 A4/5 G4/5 F4/4 | E4/3 F4/4 E4/3 D4/2 | C4w/1',
-  green:'Rh Re A4e/1 | C5/2 D5e/3 E5e./4 F5s/5 E5e/4 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5/4 A4e/2 A4e./2 G#4s/1 A4e/2 | B4/3 G#4e/2 E4/1 A4e/1 | C5/2 D5e/3 E5e./4 F5s/5 E5e/4 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5e./5 B4s/4 A4e/3 G#4e./2 F#4s/1 G#4e/2 | A4h./3 | G5q./3 G5e./3 F#5s/2 E5e/1 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5/4 A4e/2 A4e./2 G#4s/1 A4e/2 | B4/3 G#4e/2 E4q./1 | G5q./3 G5e./3 F#5s/2 E5e/1 | D5/5 B4e/3 G4e./1 A4s/2 B4e/3 | C5e./5 B4s/4 A4e/3 G#4e./2 F#4s/1 G#4e/2 | A4h./3',
-  greenLH:'Rh. | A2q. E3q. | G2q. D3q. | A2q. E3q. | E2q. B2q. | A2q. E3q. | G2q. D3q. | A2q. E2q. | A2h. | C3q. G3q. | G2q. D3q. | A2q. E3q. | E2q. B2q. | C3q. G3q. | G2q. D3q. | A2q. E2q. | A2h.'
+  green:'Rh Re A4e/1 | C5q./3 E5q./5 | D5q./4 C5e./3 B4s/2 A4e/1 | C5q./3 B4q./2 | A4h./1 | C5q./3 E5q./5 | D5q./4 E5e./5 D5s/4 C5e/3 | B4q./2 A4q./1 | A4h./1 | E5q./5 D5e/4 C5e/3 B4e/2 | C5q./3 A4q./1 | B4q./2 A4q./1 | A4h./1',
+  greenLH:'Rh. | A2q. E3q. | G2q. D3q. | A2q. E3q. | A2q. E3q. | A2q. E3q. | G2q. D3q. | E2q. B2q. | A2q. E3q. | A2q. E3q. | F2q. C3q. | E2q. B2q. | A2q. E3q.'
 });
 T.greenHT=mergeHands(T.green,T.greenLH,3);
 const G68={bpb:3,ts:'6/8',clk:1.5};
@@ -1609,8 +1616,8 @@ WORLDS.push(
    {t:'dyn',title:'Soft to loud',seq:['C4','D4','E4','F4','G4'],fingers:[1,2,3,4,5],diff:6},
    {t:'check',title:'Self-check',items:['The phrase clearly grew toward the top','It relaxed back down to the end','The last note was soft and the hand lifted gently']}
   ]},
-  {id:'5.6',title:'Song: Greensleeves',xp:50,steps:[
-   {t:'read',title:'Greensleeves',html:`<p>An English tune from the 1500s, in <b>A minor</b> and <b>6/8</b>. It begins with a one-eighth pickup. The <b>G♯</b>s and <b>F♯</b> come from A minor's raised 6th and 7th notes.</p><p>The dotted eighth + sixteenth (<i>long-short</i>) gives it its lilt. Count “1-2-3 4-5-6” and place the sixteenth just before the next eighth.</p><p>LH: two notes per bar (root, then fifth) — a broken chord. Fingering is suggested; the hand shifts on longer notes.</p>`},
+  {id:'5.6',title:'Song: Dark Tide',xp:50,steps:[
+   {t:'read',title:'Dark Tide',html:`<p>An original minor-key rock ballad in <b>A minor</b> and <b>6/8</b>, with a one-eighth pickup. The 6/8 pulse rocks like a slow tide: two big dotted-quarter beats per bar.</p><p>The dotted eighth + sixteenth (<i>long-short</i>) in bars 2 and 6 gives it its lilt — count “1-2-3 4-5-6” and place the sixteenth just before the next eighth.</p><p>LH: two notes per bar (root, then fifth) — a power-chord pulse. Fingering is suggested; the hand shifts on longer notes.</p>`},
    {t:'song',title:'Melody, slow',text:T.green,bpm:60,need:1,...G68},
    {t:'song',title:'Melody',text:T.green,bpm:75,need:2,...G68},
    {t:'song',title:'Hands together, slow',text:T.greenHT,bpm:60,need:1,...G68},
@@ -1626,7 +1633,7 @@ WORLDS.push(
    {t:'quiz',title:'Major or minor? 8 of 10',kind:'ear',n:10,pass:8},
    {t:'song',title:'Inversions · RH',text:T.invRH,bpm:60,need:1},
    {t:'song',title:'Inversions · LH',text:T.invLH,bpm:60,need:1},
-   {t:'song',title:'Greensleeves',text:T.greenHT,bpm:75,need:3,...G68}
+   {t:'song',title:'Dark Tide',text:T.greenHT,bpm:75,need:3,...G68}
   ]}}
 );
 Object.assign(T,{
@@ -1716,8 +1723,8 @@ Object.assign(T,{
   leapLH:'C3/5 C2/5 C3/5 C2/5 | C3/5 C2/5 C3/5 C2/5 | C3w/5',
   leapRH:'C4/1 C5/5 C4/1 C5/5 | C4/1 C5/5 C4/1 C5/5 | C4w/1',
   leap6:'C3/5 A3/1 C3/5 A3/1 | G2/5 E3/1 G2/5 E3/1 | C3w/5',
-  twinkle:'C4/1 C4/1 G4/5 G4/5 | A4/5 A4/5 G4h/5 | F4/4 F4/4 E4/3 E4/3 | D4/2 D4/2 C4h/1 | G4/5 G4/5 F4/4 F4/4 | E4/3 E4/3 D4h/2 | G4/5 G4/5 F4/4 F4/4 | E4/3 E4/3 D4h/2 | C4/1 C4/1 G4/5 G4/5 | A4/5 A4/5 G4h/5 | F4/4 F4/4 E4/3 E4/3 | D4/2 D4/2 C4h/1',
-  twinkleHT:'C4+C3:w/1 C4/1 G4/5 G4/5 | A4+F3:w/5 A4/5 G4h/5 | F4+C3:w/4 F4/4 E4/3 E4/3 | D4+G3:h/2 D4/2 C4+C3h/1',
+  burner:'C4/1 E4/3 G4/5 G4/5 | A4/5 A4/5 G4h/5 | E4/3 G4/5 E4/3 C4/1 | D4/2 D4/2 C4h/1 | F4/4 A4/5 A4/5 G4/5 | F4/4 E4/3 D4h/2 | C4/1 E4/3 G4/5 G4/5 | A4/5 A4/5 G4h/5 | F4/4 F4/4 E4/3 E4/3 | D4/2 D4/2 C4h/1',
+  burnerHT:'C4+C3:w/1 E4/3 G4/5 G4/5 | A4+F3:w/5 A4/5 G4h/5 | E4+C3:w/3 G4/5 E4/3 C4/1 | D4+G3:h/2 D4/2 C4+C3h/1',
   // --- World 2: hand independence (LH steady quarters, RH varies) ---
   indepR:'E4h/3 E4/3 F4/4 | G4h/5 G4/5 F4/4 | E4/3 F4/4 G4/5 E4/3 | C4w/1',
   // --- World 3: sixteenths, syncopation ---
@@ -1732,11 +1739,11 @@ Object.assign(T,{
   progRoot:'C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | A2/5 E3/1 A2/5 E3/1 | F2/5 C3/1 F2/5 C3/1 | C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | A2/5 E3/1 A2/5 E3/1 | F2/5 C3/1 F2/5 C3/1',
   // --- World 5: seventh chords, lead sheet ---
   iiVI:'D3+F3+A3+C4w/5 | G2+B2+D3+F3w/5 | C3+E3+G3+B3w/5 | C3+E3+G3+B3w/5',
-  maryRoot:'C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | C3/5 G3/1 C3/5 G3/1'
+  maryRoot:'C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1 | G2/5 D3/1 G2/5 D3/1 | G2/5 D3/1 G2/5 D3/1 | C3/5 G3/1 C3/5 G3/1 | F2/5 C3/1 F2/5 C3/1 | C3/5 G3/1 C3/5 G3/1 | C3/5 G3/1 C3/5 G3/1'
 });
 T.indep=mergeHands(T.indepR,rep('C3/5',16),4);
-T.maryLead=addLH(T.mary,[CH.C,CH.C,CH.G,CH.C,CH.C,CH.C,CH.G,CH.C]);
-T.maryRootHT=mergeHands(T.mary,T.maryRoot,4);
+T.maryLead=addLH(T.thunder,[CH.C,CH.C,CH.G,CH.G,CH.C,CH.F,CH.C,CH.C]);
+T.maryRootHT=mergeHands(T.thunder,T.maryRoot,4);
 const RHY16=[
   {q:'How do you count this bar?',score:'C4s C4s C4s C4s C4 C4h',opts:['1 e & a 2 3 (4)','1 & 2 & 3 (4)','1 2 3 4','1 e & a 2 & 3 4'],a:'1 e & a 2 3 (4)'},
   {q:'Play on which counts?',score:'C4e C4s C4s C4 C4h',opts:['1 & a 2 3 (4)','1 e & 2 3 (4)','1 & 2 3 4','1 e a 2 3 (4)'],a:'1 & a 2 3 (4)'},
@@ -1787,20 +1794,20 @@ const W3B={id:'3b',noRank:true,name:'Shift & Cross',sub:'moving past five notes:
    {t:'song',title:'Sixth leaps · LH',html:`<p>A smaller jump: a sixth. Thumb lands on A3 and E3.</p>`,text:T.leap6,bpm:60,need:2},
    {t:'check',title:'Self-check',items:['I looked at the landing key, not at my hand','No glancing down during the jumps']}
   ]},
-  {id:'3b.7',title:'Song: Twinkle, Twinkle',xp:50,steps:[
-   {t:'read',title:'Twinkle, Twinkle, Little Star',html:`<p>A French tune from the 1700s, so it is public domain. The first jump is a fifth: C to G.</p><p>The <b>pinky slide</b>: finger 5 plays G, then <b>slides</b> to the next key A with the same finger — no gap, no lift. Keep it relaxed.</p>`},
-   {t:'song',title:'Right hand, slow',text:T.twinkle,bpm:70,need:1},
-   {t:'song',title:'Right hand @ 90',text:T.twinkle,bpm:90,need:3},
-   {t:'song',title:'First phrase, hands together',html:`<p>LH holds one note per bar: C, F, C, then G and C.</p>`,text:T.twinkleHT,bpm:66,need:2}
+  {id:'3b.7',title:'Song: Bridge Burner',xp:50,steps:[
+   {t:'read',title:'Bridge Burner',html:`<p>An original rock riff that uses everything in this world. It opens with an <b>arpeggio</b> (C E G) and jumps a fifth, then the <b>pinky slide</b>: finger 5 plays G, then <b>slides</b> to the next key A with the same finger — no gap, no lift. Keep it relaxed.</p><p>It finishes on a hammering <b>D D C</b> that lands home.</p>`},
+   {t:'song',title:'Right hand, slow',text:T.burner,bpm:70,need:1},
+   {t:'song',title:'Right hand @ 90',text:T.burner,bpm:90,need:3},
+   {t:'song',title:'First phrase, hands together',html:`<p>LH holds one note per bar: C, F, C, then G and C.</p>`,text:T.burnerHT,bpm:66,need:2}
   ]}],
   boss:{id:'B3b',title:'The Crossing Bridge',xp:200,boss:true,steps:[
-   {t:'read',title:'👹 The Crossing Bridge',html:`<p>The bridge only holds if there is no gap where you cross. A scale in each hand, a leap, and Twinkle at 90.</p>`},
+   {t:'read',title:'👹 The Crossing Bridge',html:`<p>The bridge only holds if there is no gap where you cross. A scale in each hand, a leap, and Bridge Burner at 90.</p>`},
    {t:'check',title:'Form',items:['Wrist level through every crossing','Elbow gliding, no jerks','Fingers close to the keys']},
    {t:'song',title:'C major · RH',text:T.cRH,bpm:60,need:2},
    {t:'song',title:'C major · LH',text:T.cLH,bpm:60,need:2},
    {t:'song',title:'Octave leaps · LH',text:T.leapLH,bpm:60,need:1},
    {t:'check',title:'Leaps',items:['I did not look down during the leaps']},
-   {t:'song',title:'Twinkle @ 90',text:T.twinkle,bpm:90,need:3}
+   {t:'song',title:'Bridge Burner @ 90',text:T.burner,bpm:90,need:3}
   ]}};
 WORLDS.splice(WORLDS.findIndex(w=>w.id===4),0,W3B);
 
@@ -1815,7 +1822,7 @@ W(2).quests.push(
    {t:'song',title:'Hands apart @ 72',text:T.indep,bpm:72,need:2}
   ]},
   {id:'2.9',title:'Hear the distance',xp:50,steps:[
-   {t:'read',title:'Four distances',html:`<p>Learn to <b>hear</b> intervals, not just read them.</p><p><b>2nd</b>: neighbours, like the first two notes of Mary Had a Little Lamb. <b>3rd</b>: C to E, the start of When the Saints. <b>5th</b>: the first leap of Twinkle, C to G, wide and open. <b>Octave</b>: the same note name, higher.</p><p>Hum the first note, then the second. If you can sing it, you can find it.</p>`},
+   {t:'read',title:'Four distances',html:`<p>Learn to <b>hear</b> intervals, not just read them.</p><p><b>2nd</b>: neighbours, like the first two notes of Ode to Joy's “D C”. <b>3rd</b>: C to E, the first leap of Rapid Fire. <b>5th</b>: C to G, wide and open — the power-chord interval. <b>Octave</b>: the same note name, higher.</p><p>Hum the first note, then the second. If you can sing it, you can find it.</p>`},
    {t:'quiz',title:'Interval ear · 8 of 10',kind:'earint',n:10,pass:8}
   ]});
 W(2).boss.steps.push({t:'song',title:'Hands apart',text:T.indep,bpm:72,need:1});
@@ -1895,7 +1902,7 @@ W(5).quests.push(
    {t:'song',title:'ii – V – I @ 66',text:T.iiVI,bpm:66,need:2}
   ]},
   {id:'5.9',title:'Lead-sheet playing',xp:50,steps:[
-   {t:'read',title:'Melody plus chord symbols',html:`<p>A <b>lead sheet</b> is the melody with chord symbols above it. You decide how to play the chords.</p><p>Mary Had a Little Lamb: <b>C | C | G | C | C | C | G | C</b>. First try block chords in the LH. Then try the root–fifth pattern.</p><p>The most important lead-sheet skill: <b>keep going</b>. If you slip, do not stop or go back — find the next beat and carry on.</p>`},
+   {t:'read',title:'Melody plus chord symbols',html:`<p>A <b>lead sheet</b> is the melody with chord symbols above it. You decide how to play the chords.</p><p>Thunder Steps as a lead sheet: <b>C | C | G | G | C | F | C | C</b>. First try block chords in the LH. Then try the root–fifth pattern.</p><p>The most important lead-sheet skill: <b>keep going</b>. If you slip, do not stop or go back — find the next beat and carry on.</p>`},
    {t:'song',title:'Block chords',text:T.maryLead,bpm:60,need:1},
    {t:'song',title:'Root–fifth pattern',text:T.maryRootHT,bpm:66,need:1},
    {t:'song',title:'Lead sheet @ 70, no stopping',text:T.maryRootHT,bpm:70,need:2},
@@ -1911,7 +1918,7 @@ W(5).quests.push(
      mc('Relative minor of E♭ major',['C minor','E♭ minor','A minor','G minor'],'C minor'),
      mc('Flats in E♭ major',['B♭ E♭ A♭','B♭ E♭','B♭ E♭ A♭ D♭','F♯ C♯ G♯'],'B♭ E♭ A♭')]}
   ]});
-W(5).boss.steps.push({t:'song',title:'Lead sheet · Mary',text:T.maryRootHT,bpm:70,need:1});
+W(5).boss.steps.push({t:'song',title:'Lead sheet · Thunder Steps',text:T.maryRootHT,bpm:70,need:1});
 
 // ---------- World 6: memory and performance ----------
 W(6).quests.push(

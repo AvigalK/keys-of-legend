@@ -19,15 +19,15 @@ Gamified piano lessons for a 61-key keyboard, from zero to real repertoire. The 
 |---|---|---|---|
 | 0 | Tutorial Island | posture, hand shape, finding keys, steady pulse | The Gatekeeper |
 | 1 | Middle C Meadows | C position, note values, treble & bass staff | Ode to Joy |
-| 2 | Grand Staff Grove | landmark notes, intervals, 3/4, hands together, dynamics, hands apart, hearing intervals | Au Clair de la Lune |
-| 3 | Rhythm Rapids | eighths, dotted rhythms, staccato/legato, sharps & flats, pickups, sixteenths, syncopation | When the Saints |
-| 3b | Shift & Cross | bonus world between 3 and 4: hand shifts, thumb-under, finger-over, finger substitution, leaps | The Crossing Bridge |
-| 4 | Scale Summit | major scales, key signatures, triads, I–IV–V, scales hands together, dominant 7th, I–V–vi–IV, pentatonic improv, circle of fifths | Amazing Grace |
-| 5 | Harmony Harbor | inversions, Alberti bass, minor keys, ear training, 6/8, composing, 7th chords, lead sheets, more keys | Greensleeves |
+| 2 | Grand Staff Grove | landmark notes, intervals, 3/4, hands together, dynamics, hands apart, hearing intervals | Storm Warning |
+| 3 | Rhythm Rapids | eighths, dotted rhythms, staccato/legato, sharps & flats, pickups, sixteenths, syncopation | Rapid Fire |
+| 3b | Shift & Cross | bonus world between 3 and 4: hand shifts, thumb-under, finger-over, finger substitution, leaps | The Crossing Bridge (Bridge Burner) |
+| 4 | Scale Summit | major scales, key signatures, triads, I–IV–V, scales hands together, dominant 7th, I–V–vi–IV, pentatonic improv, circle of fifths | Ember Waltz |
+| 5 | Harmony Harbor | inversions, Alberti bass, minor keys, ear training, 6/8, composing, 7th chords, lead sheets, more keys | Dark Tide |
 | 6 | Classic Castle | reading real scores, 2-octave scales, arpeggios, memorising, first performance | Schumann's Melodie, Minuet in G |
 | 7 | Expression Peaks | *coming next* — Bach Prelude in C, Clementi, Für Elise, Gymnopédie | — |
 
-All music is traditional or public domain. Melodie and the Minuet in G were converted from [Mutopia Project](https://www.mutopiaproject.org) public-domain editions.
+The rock and metal-style pieces (Thunder Steps, Storm Warning, Rapid Fire, Bridge Burner, Ember Waltz, Dark Tide) are original. Classical pieces are public domain. Melodie and the Minuet in G were converted from [Mutopia Project](https://www.mutopiaproject.org) public-domain editions.
 
 ## Tech
 
